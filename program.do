@@ -1,5 +1,5 @@
 clear
-capture log using /Users/sandrafronteau/Desktop/Stage_OFCE/Stata/results/15_june2.log, replace
+capture log using "/Users/sandrafronteau/Desktop/Stage_OFCE/Stata/results/$S_DATE $S_TIME.log", replace
 set matsize 7000
 *set mem 700m if earlier version of stata (<stata 12)
 set more off
@@ -11,7 +11,12 @@ insheet using "/Users/sandrafronteau/Desktop/Stage_OFCE/Stata/data/ocde/OECD_ICI
 save "/Users/sandrafronteau/Desktop/Stage_OFCE/Stata/dofiles/OECD`i'.dta", replace
 }
 
-*Trimming the database to convert tables into matrices
+*-------------------------------------------------------------------------------
+*TRIMMING THE DATABASE TO CONVERT TABLES INTO MATRICES
+*-------------------------------------------------------------------------------
+capture program drop prepare_database
+program prepare_database
+	*args yrs 
 
 *From the original database I keep only the output vector
 clear
@@ -19,7 +24,7 @@ use "/Users/sandrafronteau/Desktop/Stage_OFCE/Stata/dofiles/OECD2011.dta"
 sort v1 aus_c01t05agr-disc in 1/2159
 order aus_c01t05agr-row_c95pvh, alphabetic after (v1)
 order aus_hc-row_consabr, alphabetic after (zaf_c95pvh)
-keep in 2161
+keep if v1 == "OUT"
 drop v1
 save "/Users/sandrafronteau/Desktop/Stage_OFCE/Stata/data/ocde/OECD_2011_OUT.dta", replace
 *From the original database I keep only the table for inter-industry inter-country trade
@@ -29,7 +34,7 @@ sort v1 aus_c01t05agr-disc in 1/2159
 order aus_c01t05agr-row_c95pvh, alphabetic after (v1)
 order aus_hc-row_consabr, alphabetic after (zaf_c95pvh)
 drop arg_consabr-disc
-drop in 2160/2161
+drop if v1 == "VA.TAXSUB" | v1 == "OUT"
 drop v1
 save "/Users/sandrafronteau/Desktop/Stage_OFCE/Stata/data/ocde/OECD_2011_Z.dta", replace
 *From the original database I keep only the table for final demand
@@ -39,13 +44,17 @@ sort v1 aus_c01t05agr-disc in 1/2159
 order aus_c01t05agr-row_c95pvh, alphabetic after (v1)
 order aus_hc-row_consabr, alphabetic after (zaf_c95pvh)
 keep arg_consabr-disc
-drop in 2160/2161
+drop if v1 == "VA.TAXSUB" | v1 == "OUT"
 save "/Users/sandrafronteau/Desktop/Stage_OFCE/Stata/data/ocde/finaldemand_2011.dta", replace
+
+end
 
 *-------------------------------------------------------------------------------
 *COMPUTING LEONTIEF INVERSE MATRIX
 *-------------------------------------------------------------------------------
-
+capture program drop compute_leontief
+program compute_leontief
+	*args yrs
 *Create vector X of output from troncated database
 clear
 set matsize 7000
@@ -74,10 +83,14 @@ matrix L=(I-A)
 *Leontief inverse
 matrix L1=inv(L)
 
+end
+
 *-------------------------------------------------------------------------------
 *COMPUTING THE FINAL DEMAND VECTOR
 *-------------------------------------------------------------------------------
-
+capture program drop compute_fd
+program compute_fd
+	*args yrs
 *Create a final demand column-vector for all countries with a loop
 use "/Users/sandrafronteau/Desktop/Stage_OFCE/Stata/data/ocde/finaldemand_2011.dta"
 
@@ -93,9 +106,14 @@ matrix F=Faus+F`j'
 matrix colnames F = Final_demand
 *r1...rN corresponding to each vector per country
 
+end
+
 *----------------------------------------------------------------------------------
 *BUILDING A DATABASE WITH VECTORS OF COUNTRIES AND SECTORS AND VECTOR CONTAINING 0
 *----------------------------------------------------------------------------------
+capture program drop database_csv
+program database_csv
+
 clear
 set more off
 global country "ARG AUS AUT BEL BGR BRA BRN CAN CHE CHL CHN CHN.DOM CHN.NPR CHN.PRO COL CRI CYP CZE DEU DNK ESP EST FIN FRA GBR GRC HKG HRV HUN IDN IND IRL ISL ISR ITA JPN KHM KOR LTU LUX LVA MEX MEX.GMF MEX.NGM MLT MYS NLD NOR NZL PHL POL PRT ROU RoW RUS SAU SGP SVK SVN SWE THA TUN TUR TWN USA VNM ZAF"
@@ -126,25 +144,54 @@ foreach i of global sector {
 
 gen v1=0
 
-*I withdraw the industries for different types of MEX and CHN that are not in the dataset from v1
-drop in 341/358
-drop in 375/390
-drop in 393/408
-drop in 393
-drop in 410/425
+*I withdraw the industries for different types of CHN and MEX that are not in the dataset from v1
 
-drop in 1330/1345
-drop in 1346/1347
-drop in 1362/1377
-drop in 1362/1363
-drop in 1378/1393
+*CHINA
+global sector2 "C01T05 C10T14 C15T16 C17T19 C20 C21T22 C23 C24 C25 C26 C27 C28 C29 C30T33X C31 C34 C35 C36T37"
+
+foreach i of global sector2 {
+drop if (c == "CHN" & s == "`i'")
+}
+
+global sector3 "C40T41 C45 C50T52 C55 C60T63 C64 C65T67 C70 C71 C72 C73T74 C75 C80 C85 C90T93 C95"
+
+foreach i of global sector3 {
+	foreach j in CHN.DOM CHN.NPR CHN.PRO {
+		drop if (c == "`j'" & s == "`i'")
+	}
+}
+
+drop if (c == "CHN.PRO" & s == "C01T05")
+
+*MEXICO
+global sector4 "C15T16 C17T19 C20 C21T22 C23 C24 C25 C26 C27 C28 C29 C30T33X C31 C34 C35 C36T37"
+
+foreach i of global sector4 {
+drop if (c == "MEX" & s == "`i'")
+}
+
+global sector5 "C01T05 C10T14 C40T41 C45 C50T52 C55 C60T63 C64 C65T67 C70 C71 C72 C73T74 C75 C80 C85 C90T93 C95"
+
+foreach i of global sector5 {
+	foreach j in MEX.GMF MEX.NGM {
+		drop if (c == "`j'" & s == "`i'")
+	}
+}
 
 save "/Users/sandrafronteau/Desktop/Stage_OFCE/Stata/data/ocde/csv.dta", replace
 
+end
 
 *---------------------------------------------------------------------------------------------
 *COMPUTING THE EFFECT OF A SHOCK ON INPUT PRICES IN ONE SECTOR OF ONE COUNTRY ON OUTPUT PRICES
 *---------------------------------------------------------------------------------------------
+capture program drop vector_shock
+program vector_shock
+
+clear
+use "/Users/sandrafronteau/Desktop/Stage_OFCE/Stata/data/ocde/csv.dta"
+
+*args shk cty scr
 
 *v1 = 0.05 if c = "ARG"
 replace v1 = 0.05 if (c == "ARG" & s == "C01T05")
@@ -152,18 +199,30 @@ replace v1 = 0.05 if (c == "ARG" & s == "C01T05")
 *I extract vector v1 from database with mkmat
 mkmat v1
 matrix v1t=v1'
+
+end
+
 *Multiplying v1t by L1 to get the impact of a shock on the price vector
 matrix P = v1t * L1
 matrix list P
 *Result example: if prices in agriculture increase by 5% in Argentina, output prices in the sector of agriculture in Argentina increase by 5.8%
 
-replace v1 = 0 if (c == "ARG" & s == "C01T05")
-replace v1 = 0.02 if (c == "DEU" & s == "C29")
-mkmat v1
-matrix v1t=v1'
-matrix P = v1t * L1
-matrix list P
+*replace v1 = 0 if (c == "ARG" & s == "C01T05")
+*replace v1 = 0.02 if (c == "DEU" & s == "C29")
+*mkmat v1
+*matrix v1t=v1'
+*matrix P = v1t * L1
+*matrix list P
 *Result example: if prices in input machinery and equipment increase by 2% in Germany, then prices of output machinery and equipment increase by 2.35% in Germany and by 0.032212% in France.
+
+*-------------------------------------------------------------------------------
+*LIST ALL PROGRAMS AND RUN THEM
+*-------------------------------------------------------------------------------
+*prepare_database
+*compute_leontief
+*compute_fd
+*database_csv
+*vector_shock
 
 
 set more on
