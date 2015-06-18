@@ -29,7 +29,7 @@ program prepare_database
 
 *From the original database I keep only the output vector
 clear
-use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/dofiles/OECD`yrs'.dta"
+use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/OECD`yrs'.dta"
 sort v1 aus_c01t05agr-disc in 1/2159
 order aus_c01t05agr-row_c95pvh, alphabetic after (v1)
 order aus_hc-row_consabr, alphabetic after (zaf_c95pvh)
@@ -39,7 +39,7 @@ save "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/OECD_`yrs'_OUT.
 
 *From the original database I keep only the table for inter-industry inter-country trade
 clear
-use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/dofiles/OECD`yrs'.dta"
+use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/OECD`yrs'.dta"
 sort v1 aus_c01t05agr-disc in 1/2159
 order aus_c01t05agr-row_c95pvh, alphabetic after (v1)
 order aus_hc-row_consabr, alphabetic after (zaf_c95pvh)
@@ -50,7 +50,7 @@ save "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/OECD_`yrs'_Z.dt
 
 *From the original database I keep only the table for final demand
 clear
-use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/dofiles/OECD`yrs'.dta"
+use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/OECD`yrs'.dta"
 sort v1 aus_c01t05agr-disc in 1/2159
 order aus_c01t05agr-row_c95pvh, alphabetic after (v1)
 order aus_hc-row_consabr, alphabetic after (zaf_c95pvh)
@@ -63,6 +63,9 @@ end
 *-------------------------------------------------------------------------------
 *COMPUTING LEONTIEF INVERSE MATRIX
 *-------------------------------------------------------------------------------
+clear
+set more off
+set matsize 7000
 capture program drop compute_leontief
 program compute_leontief
 	args yrs
@@ -126,7 +129,8 @@ capture program drop database_csv
 program database_csv
 
 clear
-global country "ARG AUS AUT BEL BGR BRA BRN CAN CHE CHL CHN CHN.DOM CHN.NPR CHN.PRO COL CRI CYP CZE DEU DNK ESP EST FIN FRA GBR GRC HKG HRV HUN IDN IND IRL ISL ISR ITA JPN KHM KOR LTU LUX LVA MEX MEX.GMF MEX.NGM MLT MYS NLD NOR NZL PHL POL PRT ROU RoW RUS SAU SGP SVK SVN SWE THA TUN TUR TWN USA VNM ZAF"
+set more off
+global country "ARG AUS AUT BEL BGR BRA BRN CAN CHE CHL CHN CHNDOM CHNNPR CHNPRO COL CRI CYP CZE DEU DNK ESP EST FIN FRA GBR GRC HKG HRV HUN IDN IND IRL ISL ISR ITA JPN KHM KOR LTU LUX LVA MEX MEXGMF MEXNGM MLT MYS NLD NOR NZL PHL POL PRT ROU RoW RUS SAU SGP SVK SVN SWE THA TUN TUR TWN USA VNM ZAF"
 
 generate c = ""
 local num_pays 0
@@ -166,12 +170,12 @@ drop if (c == "CHN" & s == "`i'")
 global sector3 "C40T41 C45 C50T52 C55 C60T63 C64 C65T67 C70 C71 C72 C73T74 C75 C80 C85 C90T93 C95"
 
 foreach i of global sector3 {
-	foreach j in CHN.DOM CHN.NPR CHN.PRO {
+	foreach j in CHNDOM CHNNPR CHNPRO {
 		drop if (c == "`j'" & s == "`i'")
 	}
 }
 
-drop if (c == "CHN.PRO" & s == "C01T05")
+drop if (c == "CHNPRO" & s == "C01T05")
 
 *MEXICO
 global sector4 "C15T16 C17T19 C20 C21T22 C23 C24 C25 C26 C27 C28 C29 C30T33X C31 C34 C35 C36T37"
@@ -184,7 +188,7 @@ drop if (c == "MEX" & s == "`i'")
 global sector5 "C01T05 C10T14 C40T41 C45 C50T52 C55 C60T63 C64 C65T67 C70 C71 C72 C73T74 C75 C80 C85 C90T93 C95"
 
 foreach i of global sector5 {
-	foreach j in MEX.GMF MEX.NGM {
+	foreach j in MEXGMF MEXNGM {
 		drop if (c == "`j'" & s == "`i'")
 	}
 }
@@ -219,24 +223,108 @@ end
 
 capture program drop shock_price
 program shock_price
-
+	args cty
 *Multiplying v1t by L1 to get the impact of a shock on the price vector
-matrix P = v1t * L1
-matrix list P
+matrix P`cty' = v1t * L1
+*Result example: if prices in agriculture increase by 5% in Argentina, output prices in the sector of agriculture in Argentina increase by 5.8%
 
 end
 
-/*
-Result example: if prices in agriculture increase by 5% in Argentina, output prices in the sector of agriculture in Argentina increase by 5.8%
-replace v1 = 0 if (c == "ARG" & s == "C01T05")
-replace v1 = 0.02 if (c == "DEU" & s == "C29")
-mkmat v1
-matrix v1t=v1'
-matrix P = v1t * L1
-matrix list P
-Result example: if prices in input machinery and equipment increase by 2% in Germany, then prices of output machinery and equipment increase by 2.35% in Germany and by 0.032212% in France.
-*/
+*----------------------------------------------------------------------------------
+*CREATION OF A VECTOR CONTAINING MEAN EFFECTS OF A SHOCK ON PRICES FOR EACH COUNTRY
+*----------------------------------------------------------------------------------
+capture program drop compute_mean
+program compute_mean
+	args cty
+clear
+set matsize 7000
+set more off
+database_csv
+matrix B = hadamard(X,P`cty')
+matrix Bt = B'
+svmat Bt
+sort c s-Bt1
+by c : egen alpha = total(Bt1)
 
+mata: st_matrix("D", rowsum(st_matrix("X")))
+
+matrix list D
+matrix D1=inv(D)
+matrix list D1
+
+mkmat alpha
+matrix mean`cty'=alpha*D1
+svmat mean`cty'
+
+set more off
+local country2 "ARG AUS AUT BEL BGR BRA BRN CAN CHE CHL COL CRI CYP CZE DEU DNK ESP EST FIN FRA GBR GRC HKG HRV HUN IDN IND IRL ISL ISR ITA JPN KHM KOR LTU LUX LVA MLT MYS NLD NOR NZL PHL POL PRT ROU RoW RUS SAU SGP SVK SVN SWE THA TUN TUR TWN USA VNM ZAF"
+local sector6 "C10T14 C15T16 C17T19 C20 C21T22 C23 C24 C25 C26 C27 C28 C29 C30T33X C31 C34 C35 C36T37 C40T41 C45 C50T52 C55 C60T63 C64 C65T67 C70 C71 C72 C73T74 C75 C80 C85 C90T93 C95"
+foreach i of local country2 {
+	foreach j of local sector6 {
+		drop if (c == "`i'" & s == "`j'")
+	}
+}
+
+local sector7 "C45 C50T52 C55 C60T63 C64 C65T67 C70 C71 C72 C73T74 C75 C80 C85 C90T93 C95"
+foreach j of local sector7 {
+	drop if (c == "CHN" & s == "`j'")
+}
+
+set more off
+local sector8 "C10T14 C15T16 C17T19 C20 C21T22 C23 C24 C25 C26 C27 C28 C29 C30T33X C31 C34 C35 C36T37"
+local country3 "CHNDOM CHNNPR"
+foreach i of local country3 {
+	foreach j of local sector8 {
+		drop if (c == "`i'" & s == "`j'")
+	}
+} 
+
+local sector9 "C15T16 C17T19 C20 C21T22 C23 C24 C25 C26 C27 C28 C29 C30T33X C31 C34 C35 C36T37"
+foreach j of local sector9 {
+	drop if (c == "CHNPRO" & s == "`j'")
+}
+
+local sector10 "C10T14 C40T41 C45 C50T52 C55 C60T63 C64 C65T67 C70 C71 C72 C73T74 C75 C80 C85 C90T93 C95"
+foreach j of local sector10 {
+	drop if (c == "MEX" & s == "`j'")
+}
+
+set more off
+local sector11 "C17T19 C20 C21T22 C23 C24 C25 C26 C27 C28 C29 C30T33X C31 C34 C35 C36T37"
+local country4 "MEXGMF MEXNGM"
+foreach i of local country4 {
+	foreach j of local sector11 {
+	drop if (c == "`i'" & s == "`j'")
+	}
+}
+
+keep mean`cty'
+mkmat mean`cty'
+*Vector mean contains the mean effects of a shock on prices (coming from one country) on overall prices for each country
+
+end
+
+capture program drop table_mean
+program table_mean
+clear
+set matsize 7000
+set more off
+global country "ARG AUS AUT BEL BGR BRA BRN CAN CHE CHL CHN CHNDOM CHNNPR CHNPRO COL CRI CYP CZE DEU DNK ESP EST FIN FRA GBR GRC HKG HRV HUN IDN IND IRL ISL ISR ITA JPN KHM KOR LTU LUX LVA MEX MEXGMF MEXNGM MLT MYS NLD NOR NZL PHL POL PRT ROU RoW RUS SAU SGP SVK SVN SWE THA TUN TUR TWN USA VNM ZAF"
+foreach i of global country {
+vector_shock 0.05 `i'
+shock_price `i'
+compute_mean `i'
+}
+clear
+set more off
+foreach i of global country {
+svmat mean`i'1
+}
+* meanARG11 represents the mean effect of a price shock coming from Argentina for each country
+save "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_effect.dta", replace
+*We obtain a table of mean effect of a price shock from each country to all countries
+
+end
 
 /*
 -------------------------------------------------------------------------------
@@ -248,6 +336,8 @@ compute_fd
 database_csv
 vector_shock
 shock_price
+compute_mean
+table_mean
 */
 
 /*
