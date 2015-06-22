@@ -372,6 +372,8 @@ compute_fd
 database_csv
 vector_shock
 shock_price
+compute_xpt
+compute_V
 compute_mean
 table_mean
 */
@@ -387,6 +389,10 @@ compute_leontief `i'
 
 foreach i of numlist 1995 2000 2005 2008 2009 2010 2011 {
 compute_fd `i'
+}
+
+foreach i of numlist 1995 2000 2005 2008 2009 2010 2011 {
+table_mean `i' `v1t' `wgt' 
 }
 
 */
