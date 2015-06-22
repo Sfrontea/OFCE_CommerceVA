@@ -260,8 +260,9 @@ end
 *Creation of the vector of value-added V
 capture program drop compute_V
 program compute_V
+	args yrs
 clear
-use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/OECD2011.dta"
+use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/OECD`yrs'.dta"
 keep if v1 == "VA.TAXSUB"
 drop v1
 mkmat arg_c01t05agr-zaf_c95pvh, matrix(V)
@@ -347,7 +348,8 @@ foreach i of global country {
 vector_shock 1 `i'
 shock_price `i'
 compute_xpt 2011
-compute_mean `i' xpt
+compute_V 2011
+compute_mean `i' Vt
 }
 clear
 set more off
