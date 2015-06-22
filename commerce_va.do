@@ -357,7 +357,7 @@ foreach i of global country {
 svmat shock`i'
 }
 * shockARG1 represents the mean effect of a price shock coming from Argentina for each country
-save "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_effect.dta", replace
+save "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_effect_`wgt'.dta", replace
 *We obtain a table of mean effect of a price shock from each country to all countries
 
 end
