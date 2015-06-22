@@ -33,6 +33,7 @@ use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/OECD`yrs'.dta"
 sort v1 aus_c01t05agr-disc in 1/2159
 order aus_c01t05agr-row_c95pvh, alphabetic after (v1)
 order aus_hc-row_consabr, alphabetic after (zaf_c95pvh)
+save "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/OECD`yrs'.dta", replace
 keep if v1 == "OUT"
 drop v1
 save "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/OECD_`yrs'_OUT.dta", replace
@@ -241,13 +242,13 @@ set more off
 database_csv
 matrix Xt = X'
 svmat Xt
+
 matrix P`cty't= P`cty''
 svmat P`cty't
 generate Bt = P`cty't1* Xt1
 bys c : egen tot_prod = total(Xt1)
 generate sector_shock = Bt/tot_prod
 bys c : egen shock`cty' = total(sector_shock)
-
 
 set more off
 local country2 "ARG AUS AUT BEL BGR BRA BRN CAN CHE CHL COL CRI CYP CZE DEU DNK ESP EST FIN FRA GBR GRC HKG HRV HUN IDN IND IRL ISL ISR ITA JPN KHM KOR LTU LUX LVA MLT MYS NLD NOR NZL PHL POL PRT ROU RoW RUS SAU SGP SVK SVN SWE THA TUN TUR TWN USA VNM ZAF"
@@ -292,8 +293,7 @@ foreach i of local country4 {
 }
 
 mkmat shock`cty'
-
-*Vector shock`cty' contains the mean effects of a shock on prices (coming from the country `cty') on overall prices for each country
+*Vector shock`cty' contains the mean effects of a shock on prices (coming from the country `cty') on overall prices for each country (with vector production weighting)
 
 end
 
@@ -312,6 +312,111 @@ clear
 set more off
 foreach i of global country {
 svmat shock`i'
+}
+* shockARG1 represents the mean effect of a price shock coming from Argentina for each country
+save "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_effect.dta", replace
+*We obtain a table of mean effect of a price shock from each country to all countries
+
+end
+
+capture program drop compute_xpt
+program compute_xpt
+	args yrs
+clear
+set matsize 7000
+set more off
+*Creation of the vector of exportations xpt
+use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/OECD`yrs'.dta"
+drop arg_c01t05agr-zaf_c95pvh
+global country2 "arg aus aut bel bgr bra brn can che chl chn col cri cyp cze deu dnk esp est fin fra gbr grc hkg hrv hun idn ind irl isl isr ita jpn khm kor ltu lux lva mex mlt mys nld nor nzl phl pol prt rou row rus sau sgp svk svn swe tha tun tur twn usa vnm zaf"
+foreach i of global country2 {
+drop `i'_gfcf
+drop `i'_ggfc
+drop `i'_hc
+drop `i'_invnt
+drop `i'_npish
+}
+drop if v1 == "VA.TAXSUB" | v1 == "OUT"
+egen xpt = rowtotal(arg_consabr-disc)
+mkmat xpt
+database_csv
+svmat xpt
+
+end
+
+capture program drop compute_mean2
+program compute_mean2
+	args cty
+*I compute another vector of means with exportations as weight instead of production
+matrix P`cty't= P`cty''
+svmat P`cty't
+generate Bt2 = P`cty't1* xpt
+sort c s-tot_xpt
+by c : egen tot_xpt = total(xpt1)
+generate sector_shock2 = Bt2/tot_xpt
+bys c : egen shock`cty'2 = total(sector_shock2)
+
+set more off
+local country2 "ARG AUS AUT BEL BGR BRA BRN CAN CHE CHL COL CRI CYP CZE DEU DNK ESP EST FIN FRA GBR GRC HKG HRV HUN IDN IND IRL ISL ISR ITA JPN KHM KOR LTU LUX LVA MLT MYS NLD NOR NZL PHL POL PRT ROU RoW RUS SAU SGP SVK SVN SWE THA TUN TUR TWN USA VNM ZAF"
+local sector6 "C10T14 C15T16 C17T19 C20 C21T22 C23 C24 C25 C26 C27 C28 C29 C30T33X C31 C34 C35 C36T37 C40T41 C45 C50T52 C55 C60T63 C64 C65T67 C70 C71 C72 C73T74 C75 C80 C85 C90T93 C95"
+foreach i of local country2 {
+	foreach j of local sector6 {
+		drop if (c == "`i'" & s == "`j'")
+	}
+}
+
+local sector7 "C45 C50T52 C55 C60T63 C64 C65T67 C70 C71 C72 C73T74 C75 C80 C85 C90T93 C95"
+foreach j of local sector7 {
+	drop if (c == "CHN" & s == "`j'")
+}
+
+set more off
+local sector8 "C10T14 C15T16 C17T19 C20 C21T22 C23 C24 C25 C26 C27 C28 C29 C30T33X C31 C34 C35 C36T37"
+local country3 "CHNDOM CHNNPR"
+foreach i of local country3 {
+	foreach j of local sector8 {
+		drop if (c == "`i'" & s == "`j'")
+	}
+} 
+
+local sector9 "C15T16 C17T19 C20 C21T22 C23 C24 C25 C26 C27 C28 C29 C30T33X C31 C34 C35 C36T37"
+foreach j of local sector9 {
+	drop if (c == "CHNPRO" & s == "`j'")
+}
+
+local sector10 "C10T14 C40T41 C45 C50T52 C55 C60T63 C64 C65T67 C70 C71 C72 C73T74 C75 C80 C85 C90T93 C95"
+foreach j of local sector10 {
+	drop if (c == "MEX" & s == "`j'")
+}
+
+set more off
+local sector11 "C17T19 C20 C21T22 C23 C24 C25 C26 C27 C28 C29 C30T33X C31 C34 C35 C36T37"
+local country4 "MEXGMF MEXNGM"
+foreach i of local country4 {
+	foreach j of local sector11 {
+	drop if (c == "`i'" & s == "`j'")
+	}
+}
+
+svmat shock`cty'2
+
+end
+
+capture program drop table_mean2
+program table_mean2
+clear
+set matsize 7000
+set more off
+global country "ARG AUS AUT BEL BGR BRA BRN CAN CHE CHL CHN CHNDOM CHNNPR CHNPRO COL CRI CYP CZE DEU DNK ESP EST FIN FRA GBR GRC HKG HRV HUN IDN IND IRL ISL ISR ITA JPN KHM KOR LTU LUX LVA MEX MEXGMF MEXNGM MLT MYS NLD NOR NZL PHL POL PRT ROU RoW RUS SAU SGP SVK SVN SWE THA TUN TUR TWN USA VNM ZAF"
+foreach i of global country {
+vector_shock 1 `i'
+shock_price `i'
+compute_mean2 `i'
+}
+clear
+set more off
+foreach i of global country {
+svmat shock`i'2
 }
 * shockARG1 represents the mean effect of a price shock coming from Argentina for each country
 save "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_effect.dta", replace
