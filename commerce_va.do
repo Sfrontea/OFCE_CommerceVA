@@ -224,9 +224,9 @@ end
 
 capture program drop shock_price
 program shock_price
-	args cty
+	args cty v1t
 *Multiplying v1t by L1 to get the impact of a shock on the price vector
-matrix P`cty' = v1t * L1
+matrix P`cty' = `v1t' * L1
 *Result example: if prices in agriculture increase by 5% in Argentina, output prices in the sector of agriculture in Argentina increase by 5.8%
 
 end
@@ -280,7 +280,7 @@ svmat Xt
 svmat xpt
 svmat Vt
 *I decide whether I use the production or export or value-added vector as weight modifying the argument "wgt" : Xt or xpt or Vt
-
+*Compute the vector of mean effects :
 matrix P`cty't= P`cty''
 svmat P`cty't
 generate Bt = P`cty't1* `wgt'
@@ -340,16 +340,16 @@ end
 *----------------------------------------------------------------------------------------------------
 capture program drop table_mean
 program table_mean
+	args yrs v1t wgt
 clear
 set matsize 7000
 set more off
 global country "ARG AUS AUT BEL BGR BRA BRN CAN CHE CHL CHN CHNDOM CHNNPR CHNPRO COL CRI CYP CZE DEU DNK ESP EST FIN FRA GBR GRC HKG HRV HUN IDN IND IRL ISL ISR ITA JPN KHM KOR LTU LUX LVA MEX MEXGMF MEXNGM MLT MYS NLD NOR NZL PHL POL PRT ROU RoW RUS SAU SGP SVK SVN SWE THA TUN TUR TWN USA VNM ZAF"
 foreach i of global country {
-vector_shock 1 `i'
-shock_price `i'
-compute_xpt 2011
-compute_V 2011
-compute_mean `i' Vt
+shock_price `i' `v1t'
+compute_xpt `yrs'
+compute_V `yrs'
+compute_mean `i' `wgt'
 }
 clear
 set more off
