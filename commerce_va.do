@@ -236,25 +236,18 @@ end
 capture program drop compute_mean
 program compute_mean
 	args cty
-clear
 set matsize 7000
 set more off
 database_csv
-matrix B = hadamard(X,P`cty')
-matrix Bt = B'
-svmat Bt
-sort c s-Bt1
-by c : egen alpha = total(Bt1)
+matrix Xt = X'
+svmat Xt
+matrix P`cty't= P`cty''
+svmat P`cty't
+generate Bt = P`cty't1* Xt1
+bys c : egen tot_prod = total(Xt1)
+generate sector_shock = Bt/tot_prod
+bys c : egen shock`cty' = total(sector_shock)
 
-mata: st_matrix("D", rowsum(st_matrix("X")))
-
-matrix list D
-matrix D1=inv(D)
-matrix list D1
-
-mkmat alpha
-matrix mean`cty'=alpha*D1
-svmat mean`cty'
 
 set more off
 local country2 "ARG AUS AUT BEL BGR BRA BRN CAN CHE CHL COL CRI CYP CZE DEU DNK ESP EST FIN FRA GBR GRC HKG HRV HUN IDN IND IRL ISL ISR ITA JPN KHM KOR LTU LUX LVA MLT MYS NLD NOR NZL PHL POL PRT ROU RoW RUS SAU SGP SVK SVN SWE THA TUN TUR TWN USA VNM ZAF"
@@ -298,9 +291,9 @@ foreach i of local country4 {
 	}
 }
 
-keep mean`cty'
-mkmat mean`cty'
-*Vector mean contains the mean effects of a shock on prices (coming from one country) on overall prices for each country
+mkmat shock`cty'
+
+*Vector shock`cty' contains the mean effects of a shock on prices (coming from the country `cty') on overall prices for each country
 
 end
 
@@ -311,16 +304,16 @@ set matsize 7000
 set more off
 global country "ARG AUS AUT BEL BGR BRA BRN CAN CHE CHL CHN CHNDOM CHNNPR CHNPRO COL CRI CYP CZE DEU DNK ESP EST FIN FRA GBR GRC HKG HRV HUN IDN IND IRL ISL ISR ITA JPN KHM KOR LTU LUX LVA MEX MEXGMF MEXNGM MLT MYS NLD NOR NZL PHL POL PRT ROU RoW RUS SAU SGP SVK SVN SWE THA TUN TUR TWN USA VNM ZAF"
 foreach i of global country {
-vector_shock 0.05 `i'
+vector_shock 1 `i'
 shock_price `i'
 compute_mean `i'
 }
 clear
 set more off
 foreach i of global country {
-svmat mean`i'1
+svmat shock`i'
 }
-* meanARG11 represents the mean effect of a price shock coming from Argentina for each country
+* shockARG1 represents the mean effect of a price shock coming from Argentina for each country
 save "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_effect.dta", replace
 *We obtain a table of mean effect of a price shock from each country to all countries
 
