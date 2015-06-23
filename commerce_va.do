@@ -222,6 +222,23 @@ end
 
 *vector_shock 0.05 ARG
 
+capture program drop vector_shock_loop
+program vector_shock_loop
+
+global country "ARG AUS AUT BEL BGR BRA BRN CAN CHE CHL CHN CHNDOM CHNNPR CHNPRO COL CRI CYP CZE DEU DNK ESP EST FIN FRA GBR GRC HKG HRV HUN IDN IND IRL ISL ISR ITA JPN KHM KOR LTU LUX LVA MEX MEXGMF MEXNGM MLT MYS NLD NOR NZL PHL POL PRT ROU RoW RUS SAU SGP SVK SVN SWE THA TUN TUR TWN USA VNM ZAF"
+foreach cty of global country {
+clear
+set matsize 7000
+set more off
+use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/csv.dta"
+replace v1 = 1 if c == "`cty'"
+rename v1 v1`cty'
+mkmat v1`cty'
+matrix v1t`cty'=v1`cty''
+save "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/csv_`cty'.dta", replace
+}
+end
+
 capture program drop shock_price
 program shock_price
 	args cty
@@ -275,7 +292,7 @@ program compute_mean
 set matsize 7000
 set more off
 clear
-use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/csv.dta"
+use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/csv_`cty'.dta"
 matrix Xt = X'
 svmat Xt
 svmat xpt
