@@ -213,14 +213,13 @@ args shk cty
 replace v1 = `shk' if c == "`cty'"
 
 *Example: v1 = 0.05 if (c = "ARG" & s == "C01T05")
-
+*vector_shock 0.05 ARG
 *I extract vector v1 from database with mkmat
 mkmat v1
 matrix v1t=v1'
 
 end
 
-*vector_shock 0.05 ARG
 
 capture program drop shock_price
 program shock_price
@@ -272,9 +271,10 @@ end
 capture program drop compute_mean
 program compute_mean
 	args cty wgt
+clear
 set matsize 7000
 set more off
-database_csv
+use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/csv.dta"
 matrix Xt = X'
 svmat Xt
 svmat xpt
@@ -340,7 +340,7 @@ end
 *----------------------------------------------------------------------------------------------------
 capture program drop table_mean
 program table_mean
-	args yrs v1t wgt
+	args yrs wgt
 *yrs = years, v1t = name of the vector of shock, wgt = Xt (output) or xpt (export) or V (value-added)
 clear
 set matsize 7000
