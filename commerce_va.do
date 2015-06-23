@@ -342,14 +342,14 @@ end
 *----------------------------------------------------------------------------------------------------
 capture program drop table_mean
 program table_mean
-	args yrs v1t wgt
+	args yrs wgt
 *yrs = years, v1t = name of the vector of shock, wgt = Xt (output) or xpt (export) or V (value-added)
 clear
 set matsize 7000
 set more off
 global country "ARG AUS AUT BEL BGR BRA BRN CAN CHE CHL CHN CHNDOM CHNNPR CHNPRO COL CRI CYP CZE DEU DNK ESP EST FIN FRA GBR GRC HKG HRV HUN IDN IND IRL ISL ISR ITA JPN KHM KOR LTU LUX LVA MEX MEXGMF MEXNGM MLT MYS NLD NOR NZL PHL POL PRT ROU RoW RUS SAU SGP SVK SVN SWE THA TUN TUR TWN USA VNM ZAF"
 foreach i of global country {
-vector_shock 1 `cty'
+vector_shock 1 `i'
 shock_price `i'
 compute_xpt `yrs'
 compute_V `yrs'
