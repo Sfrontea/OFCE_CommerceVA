@@ -12,12 +12,13 @@ capture program drop save_data
 program save_data
 
 clear
-*Loop to save data for each database year
+*Loop to save data for each year
 foreach i of numlist 1995 2000 2005 2008 2009 2010 2011 {
 insheet using "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/OECD_ICIO_June2015_`i'.csv", clear
 save "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/dofiles/OECD`i'.dta", replace
 }
 
+*Same with the database for wages
 clear
 local onglet "REM OUT"
 foreach n of local onglet{
@@ -31,7 +32,7 @@ foreach n of local onglet{
 end
 
 *-------------------------------------------------------------------------------
-*TRIMMING THE DATABASE TO CONVERT TABLES INTO MATRICES
+*TRIMMING THE DATABASE ICIO
 *-------------------------------------------------------------------------------
 capture program drop prepare_database
 program prepare_database
@@ -133,7 +134,7 @@ matrix colnames F = Final_demand
 
 end
 *-------------------------------------------------------------------------------
-*BUILDING A DATABASE FOR WAGES
+*TRIMMING THE DATABASE FOR WAGES
 *-------------------------------------------------------------------------------
 capture program drop base_wage
 program base_wage
@@ -141,23 +142,25 @@ program base_wage
 *yrs = years, n = onglet REM or OUT
 	clear
 	use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/`n'_`yrs'.dta"
-*use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/REM_1995.dta"
-	
-	*Liste des pays pour lesquels on n'a pas les rémunérations, et de l'ensemble des pays
+
+*List of countries for which there is no data available for wages
 	global restcountry "ISL BRN CHN_DOM CHN_NPR CHN_PRO COL CRI HKG HRV KHM MEX_GMF MEX_NGM MYS PHL RoW SAU SGP THA TUN "
+*List of all countries
 	global country "ARG AUS AUT BEL BGR BRA BRN CAN CHE CHL CHN CHN_DOM CHN_NPR CHN_PRO COL CRI CYP CZE DEU DNK ESP EST FIN FRA GBR GRC HKG HRV HUN IDN IND IRL ISL ISR ITA JPN KHM KOR LTU LUX LVA MEX MEX_GMF MEX_NGM MLT MYS NLD NOR NZL PHL POL PRT ROU RoW RUS SAU SGP SVK SVN SWE THA TUN TUR TWN USA VNM ZAF"
+*Lists of sectors
 	global sector "C01T05 C10T14 C15T16 C17T19 C20 C21T22 C23 C24 C25 C26 C27 C28 C29 C30T33X C31 C34 C35 C36T37 C40T41 C45 C50T52 C55 C60T63 C64 C65T67 C70 C71 C72 C73T74 C75 C80 C85 C90T93 C95"
 	global sector2 "C01T05 C10T14 C15T16 C17T19 C20 C21T22 C23 C24 C25 C26 C27 C28 C29 C30T33X C31 C34 C35 C36T37 "
 	global sector3 "C40T41 C45 C50T52 C55 C60T63 C64 C65T67 C70 C71 C72 C73T74 C75 C80 C85 C90T93 C95"
 	global sector4 "C15T16 C17T19 C20 C21T22 C23 C24 C25 C26 C27 C28 C29 C30T33X C31 C34 C35 C36T37"
 	global sector5 "C01T05 C10T14 C40T41 C45 C50T52 C55 C60T63 C64 C65T67 C70 C71 C72 C73T74 C75 C80 C85 C90T93 C95"
-	
+
 	foreach i of global restcountry {
 			gen `i'=0
 									}
+									
 	order AUS-TUN, alphabetic after (A)
-	
-	*On transforme cette base en vecteur colonne, avec une variable Rem, pour les rémunérations 
+
+*We reshape the database as a column-vector with a variable REM for wages and OUT for output
 
 	foreach i of global country {
 			rename `i' country_`i'
@@ -166,10 +169,10 @@ program base_wage
 	reshape long country_, i(A) j(country) string
 	
 	sort country  in 1/2278, stable
-	*gen `n'=country_
-	*drop country_
-		* On supprime les observation de CHN et MEX qui n'existent pas dans la base ICIO
-set more off
+	rename country_ `n'
+	
+*We delete observations for CHN and MEX that do not exist in the ICIO
+
 	foreach i of global sector2 {
 	drop if (country=="CHN" & A=="`i'")
 	}
@@ -183,7 +186,6 @@ set more off
 	drop if (country=="CHN_PRO" & A=="C01T05")
 
 	*MEXICO 
-
   
 	foreach i of global sector4 { 
 	drop if (country == "MEX" & A == "`i'") 
@@ -196,13 +198,12 @@ set more off
 		} 
 	} 
 	
-rename country_ `n'
 save "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/`n'_`yrs'.dta", replace
 	
 end
 
 *-------------------------------------------------------------------------------
-*COMPUTING S, THE VECTOR CONTAINING THE WAGE SHARES IN PRODUCTION
+*COMPUTING A VECTOR CONTAINING THE WAGE SHARES IN PRODUCTION
 *-------------------------------------------------------------------------------
 capture program drop compute_wage
 program compute_wage
@@ -212,13 +213,13 @@ set matsize 7000
 set more off
 use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/REM_`yrs'.dta"
 mkmat REM, matrix (R)
-*On récupère la production
 use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/OUT_`yrs'.dta"
 mkmat OUT, matrix (X)
 
 matrix Xd=diag(X)
 matrix Xd1=invsym(Xd)
 matrix S=Xd1*R
+*S is the column-vector containing the wage shares in production
 end
 
 *----------------------------------------------------------------------------------
@@ -303,22 +304,21 @@ end
 *---------------------------------------------------------------------------------------------
 capture program drop vector_shock
 program vector_shock
+		args shk cty
 set matsize 7000
 set more off
 clear
 use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/csv.dta"
 
-args shk cty
-
 replace c_shock = `shk' if c == "`cty'"
-
-*Example: vector_shock = 0.05 if (c = "ARG" & s == "C01T05")
+*Example: c_shock = 0.05 if (c = "ARG" & s == "C01T05")
 
 *I extract vector c_shock from database with mkmat
 mkmat c_shock
 matrix c_shockt=c_shock'
+*The transpose of c_shock will be necessary for further computations
 
-*I compute vector s_shock
+*I compute vector s_shock which is the vector of a shock on wages
 matrix c_shockd = diag(c_shock)
 matrix s_shock  = c_shockd * S
 svmat s_shock
@@ -329,9 +329,9 @@ end
 capture program drop shock_price
 program shock_price
 	args cty v
-*Multiplying the transpose of vector shock `v'_shockt by L1 to get the impact of a shock on the price vector
+*Multiplying the transpose of vector shock `v'_shockt by L1 to get the impact of a shock on the output price vector
 matrix P`cty' = `v'_shockt * L1
-*Result example: if prices in agriculture increase by 5% in Argentina, output prices in the sector of agriculture in Argentina increase by 5.8%
+*Result example: using c_shock = 0.05 if c == "ARG" & s == "C01T05": if prices in agriculture increase by 5% in Argentina, output prices in the sector of agriculture in Argentina increase by 5.8%
 
 end
 
@@ -446,14 +446,15 @@ end
 *----------------------------------------------------------------------------------------------------
 capture program drop table_mean
 program table_mean
-	args yrs wgt v
-*yrs = years, wgt = Xt (output) or xpt (export) or V (value-added)
+	args yrs wgt shk v
+*yrs = years, wgt = Xt (output) or xpt (export) or V (value-added), v = c (shock on price) or s (shock on wages)
 clear
 set matsize 7000
 set more off
 global country "ARG AUS AUT BEL BGR BRA BRN CAN CHE CHL CHN CHNDOM CHNNPR CHNPRO COL CRI CYP CZE DEU DNK ESP EST FIN FRA GBR GRC HKG HRV HUN IDN IND IRL ISL ISR ITA JPN KHM KOR LTU LUX LVA MEX MEXGMF MEXNGM MLT MYS NLD NOR NZL PHL POL PRT ROU RoW RUS SAU SGP SVK SVN SWE THA TUN TUR TWN USA VNM ZAF"
 foreach i of global country {
-	vector_shock 1 `i'
+	compute_wage `yrs'
+	vector_shock `shk' `i'
 	shock_price `i' `v'
 	compute_xpt `yrs'
 	compute_V `yrs'
@@ -470,51 +471,6 @@ save "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_`v'_`wgt'_
 
 end
 
-*------------------------------------------------------------------------------------
-*ADJUSTMENT OF THE TABLE OF MEAN EFFECTS OF A PRICE SHOCK TO REMOVE THE SIZE EFFECT
-*------------------------------------------------------------------------------------
-capture program drop table_adjst
-program table_adjst
-clear
-set matsize 7000
-set more off
-use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_effect_Xt.dta"
-
-global country "ARG AUS AUT BEL BGR BRA BRN CAN CHE CHL CHN CHNDOM CHNNPR CHNPRO COL CRI CYP CZE DEU DNK ESP EST FIN FRA GBR GRC HKG HRV HUN IDN IND IRL ISL ISR ITA JPN KHM KOR LTU LUX LVA MEX MEXGMF MEXNGM MLT MYS NLD NOR NZL PHL POL PRT ROU RoW RUS SAU SGP SVK SVN SWE THA TUN TUR TWN USA VNM ZAF"
-
-generate k = ""
-local num_pays 0
-foreach i of global country {
-	foreach j of numlist 1/1 {
-		local ligne = `j' + 1 *`num_pays'
-		replace k = "`i'" in `ligne'
-	}
-	local num_pays = `num_pays'+1
-}
-*tot_Xt is the vector of total production by country
-svmat tot_Xt
-*We standardize by the size of Germany. Xdeu stands for the German total production
-gen Xdeu = 6823167.5
-gen B = Xdeu/tot_Xt
-
-mkmat B
-
-local num_pays 0
-foreach i of global country {
-	foreach j of numlist 1/1 {
-		local ligne = `j' + 1*`num_pays'
-		scalar b`i' = B[`ligne',1]
-		gen new_shock`i'= b`i' * shock`i'1
-	}
-local num_pays = `num_pays'+1
-}
-
-drop shockARG1-shockZAF1
-
-save "/Users/sandrafronteau/Documents/mean_effect_correct.dta", replace
-
-end
-
 
 
 /*
@@ -524,6 +480,8 @@ LIST ALL PROGRAMS AND RUN THEM
 prepare_database
 compute_leontief
 compute_fd
+base_wage
+compute_wage
 database_csv
 vector_shock
 shock_price
@@ -536,20 +494,27 @@ table_adjst
 
 /*
 foreach i of numlist 1995 2000 2005 2008 2009 2010 2011 {
-prepare_database `i'
+	prepare_database `i'
 }
 
 foreach i of numlist 1995 2000 2005 2008 2009 2010 2011 {
-compute_leontief `i'
+	compute_leontief `i'
 }
 
 foreach i of numlist 1995 2000 2005 2008 2009 2010 2011 {
-compute_fd `i'
+	compute_fd `i'
+}
+
+foreach i of numlist 1995 2000 2005 {
+	base_wage `i' REM
+	base_wage `i' OUT
 }
 
 foreach i of numlist 1995 2000 2005 2008 2009 2010 2011 {
-table_mean `i' `v1t' `wgt' 
+	table_mean `i' wgt shk v 
 }
+
+
 
 */
 
