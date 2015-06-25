@@ -511,9 +511,12 @@ foreach i of numlist 1995 2000 2005 {
 }
 
 foreach i of numlist 1995 2000 2005 2008 2009 2010 2011 {
-	table_mean `i' wgt shk v 
+	table_mean `i' wgt shk c 
 }
 
+foreach i of numlist 1995 2000 2005 {
+	table_mean `i' wgt shk s
+}
 
 
 */
