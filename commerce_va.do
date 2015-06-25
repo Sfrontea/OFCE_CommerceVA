@@ -20,8 +20,8 @@ save "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/dofiles/OECD`i'.dta", rep
 
 *Same with the database for wages
 clear
-local onglet "REM OUT"
-foreach n of local onglet{
+local tab "REM OUT"
+foreach n of local tab{
 	foreach i of numlist 1995 2000 2005 {
 	clear
 	import excel "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/REM_`i'.xlsx", sheet("`n'") firstrow
