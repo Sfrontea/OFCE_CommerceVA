@@ -321,6 +321,7 @@ matrix c_shockt=c_shock'
 *I compute vector s_shock
 matrix c_shockd = diag(c_shock)
 matrix s_shock  = c_shockd * S
+svmat s_shock
 matrix s_shockt = s_shock'
 
 end
