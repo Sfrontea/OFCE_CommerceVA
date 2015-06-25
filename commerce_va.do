@@ -18,6 +18,16 @@ insheet using "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/OECD_I
 save "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/dofiles/OECD`i'.dta", replace
 }
 
+clear
+local onglet "REM OUT"
+foreach n of local onglet{
+	foreach i of numlist 1995 2000 2005 {
+	clear
+	import excel "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/REM_`i'.xlsx", sheet("`n'") firstrow
+	save "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/`n'_`i'.dta", replace
+	}
+}
+
 end
 
 *-------------------------------------------------------------------------------
@@ -194,6 +204,8 @@ foreach i of global sector5 {
 	}
 }
 
+rename v1 c_shock
+
 save "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/csv.dta", replace
 
 end
@@ -210,40 +222,41 @@ use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/csv.dta"
 
 args shk cty
 
-replace v1 = `shk' if c == "`cty'"
+replace c_shock = `shk' if c == "`cty'"
 
-*Example: v1 = 0.05 if (c = "ARG" & s == "C01T05")
+*Example: vector_shock = 0.05 if (c = "ARG" & s == "C01T05")
 
 *I extract vector v1 from database with mkmat
-mkmat v1
-matrix v1t=v1'
+mkmat c_shock
+matrix c_shockt=c_shock'
 
 end
 
 *vector_shock 0.05 ARG
-
+/*
 capture program drop vector_shock_loop
 program vector_shock_loop
-
+	args shk
 global country "ARG AUS AUT BEL BGR BRA BRN CAN CHE CHL CHN CHNDOM CHNNPR CHNPRO COL CRI CYP CZE DEU DNK ESP EST FIN FRA GBR GRC HKG HRV HUN IDN IND IRL ISL ISR ITA JPN KHM KOR LTU LUX LVA MEX MEXGMF MEXNGM MLT MYS NLD NOR NZL PHL POL PRT ROU RoW RUS SAU SGP SVK SVN SWE THA TUN TUR TWN USA VNM ZAF"
 foreach cty of global country {
 clear
 set matsize 7000
 set more off
 use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/csv.dta"
-replace v1 = 1 if c == "`cty'"
-rename v1 v1`cty'
-mkmat v1`cty'
-matrix v1t`cty'=v1`cty''
+replace c_shock = `shk' if c == "`cty'"
+rename c_shock c_shock`cty'
+mkmat c_shock`cty'
+matrix c_shockt`cty'=c_shock`cty''
 save "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/csv_`cty'.dta", replace
 }
 end
+*/
 
 capture program drop shock_price
 program shock_price
 	args cty
 *Multiplying v1t by L1 to get the impact of a shock on the price vector
-matrix P`cty' = v1t * L1
+matrix P`cty' = c_shockt * L1
 *Result example: if prices in agriculture increase by 5% in Argentina, output prices in the sector of agriculture in Argentina increase by 5.8%
 
 end
@@ -360,17 +373,16 @@ end
 capture program drop table_mean
 program table_mean
 	args yrs wgt
-*yrs = years, v1t = name of the vector of shock, wgt = Xt (output) or xpt (export) or V (value-added)
+*yrs = years, wgt = Xt (output) or xpt (export) or V (value-added)
 clear
 set matsize 7000
 set more off
 global country "ARG AUS AUT BEL BGR BRA BRN CAN CHE CHL CHN CHNDOM CHNNPR CHNPRO COL CRI CYP CZE DEU DNK ESP EST FIN FRA GBR GRC HKG HRV HUN IDN IND IRL ISL ISR ITA JPN KHM KOR LTU LUX LVA MEX MEXGMF MEXNGM MLT MYS NLD NOR NZL PHL POL PRT ROU RoW RUS SAU SGP SVK SVN SWE THA TUN TUR TWN USA VNM ZAF"
 foreach i of global country {
-vector_shock 1 `i'
-shock_price `i'
-compute_xpt `yrs'
-compute_V `yrs'
-compute_mean `i' `wgt'
+	vector_shock 1 `i'
+	compute_xpt `yrs'
+	compute_V `yrs'
+	compute_mean `i' `wgt'
 }
 clear
 set more off
@@ -384,7 +396,7 @@ save "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_effect_`wg
 end
 
 *------------------------------------------------------------------------------------
-*ADJUSTMENT OF THE TABLE OF MEAN EFFECTS OF A PRICE SHOCK TO WITHDRAW THE SIZE EFFECT
+*ADJUSTMENT OF THE TABLE OF MEAN EFFECTS OF A PRICE SHOCK TO REMOVE THE SIZE EFFECT
 *------------------------------------------------------------------------------------
 capture program drop table_adjst
 program table_adjst
