@@ -374,7 +374,7 @@ program compute_mean
 set matsize 7000
 set more off
 clear
-use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/csv_`cty'.dta"
+use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/csv.dta"
 matrix Yt = Y'
 svmat Yt
 svmat X
@@ -442,7 +442,7 @@ end
 capture program drop table_mean
 program table_mean
 	args yrs wgt shk v
-*yrs = years, wgt = Yt (output) or X (export) or V (value-added), v = c (shock on price) or s (shock on wages)
+*yrs = years, wgt = Yt (output) or X (export) or Vt (value-added), v = c (shock on price) or s (shock on wages)
 clear
 set matsize 7000
 set more off
@@ -471,22 +471,6 @@ end
 --------------------------------------------------------------------------------
 LIST ALL PROGRAMS AND RUN THEM
 --------------------------------------------------------------------------------
-save_data
-prepare_database
-compute_leontief
-compute_fd
-base_wage
-compute_wage
-database_csv
-vector_shock
-shock_price
-compute_xpt
-compute_V
-compute_mean
-table_mean
-table_adjst
-*/
-
 /*
 foreach i of numlist 1995 2000 2005 2008 2009 2010 2011 {
 	prepare_database `i'
@@ -516,6 +500,7 @@ foreach i of numlist 1995 2000 2005 {
 
 */
 
+/*
 clear
 clear matrix
 prepare_database 2005
@@ -526,7 +511,8 @@ set more off
 base_wage 2005 OUT
 compute_wage 2005
 database_csv
-table_mean 2005 Yt 1 s
+table_mean 2005 Vt 1 s
+*/
 
 
 set more on
