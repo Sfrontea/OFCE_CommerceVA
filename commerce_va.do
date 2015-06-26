@@ -81,22 +81,22 @@ set matsize 7000
 capture program drop compute_leontief
 program compute_leontief
 	args yrs
-*Create vector X of output from troncated database
+*Create vector Y of output from troncated database
 clear
 use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/OECD_`yrs'_OUT.dta"
-mkmat arg_c01t05agr-zaf_c95pvh, matrix(X)
+mkmat arg_c01t05agr-zaf_c95pvh, matrix(Y)
 
 *Create matrix Z of inter-industry inter-country trade
 use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/OECD_`yrs'_Z.dta"
 mkmat arg_c01t05agr-zaf_c95pvh, matrix (Z)
 
-*From vector X create a diagonal matrix Xd which contains all elements of vector X on the diagonal
-matrix Xd=diag(X)
-*Take the inverse of Xd (with invsym instead of inv for more accurateness and to avoid errors)
-matrix Xd1=invsym(Xd)
+*From vector Y create a diagonal matrix Yd which contains all elements of vector Y on the diagonal
+matrix Yd=diag(Y)
+*Take the inverse of Yd (with invsym instead of inv for more accurateness and to avoid errors)
+matrix Yd1=invsym(Yd)
 
-*Then multiply Xd1 by Z 
-matrix A=Z*Xd1
+*Then multiply Yd1 by Z 
+matrix A=Z*Yd1
 
 *Create identity matrix at the size we want
 mat I=I(2159)
@@ -215,6 +215,7 @@ use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/WAGE_`yrs'.dta"
 mkmat WAGE, matrix (W)
 use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/OUT_`yrs'.dta"
 mkmat OUT, matrix (X)
+*Note: this is not the same output vector as Y. Indeed it comes from the wage database.
 
 matrix Xd=diag(X)
 matrix Xd1=invsym(Xd)
@@ -380,11 +381,11 @@ set matsize 7000
 set more off
 clear
 use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/csv_`cty'.dta"
-matrix Xt = X'
-svmat Xt
+matrix Yt = Y'
+svmat Yt
 svmat xpt
 svmat Vt
-*I decide whether I use the production or export or value-added vector as weight modifying the argument "wgt" : Xt or xpt or Vt
+*I decide whether I use the production or export or value-added vector as weight modifying the argument "wgt" : Yt or xpt or Vt
 *Compute the vector of mean effects :
 matrix P`cty't= P`cty''
 svmat P`cty't
@@ -447,7 +448,7 @@ end
 capture program drop table_mean
 program table_mean
 	args yrs wgt shk v
-*yrs = years, wgt = Xt (output) or xpt (export) or V (value-added), v = c (shock on price) or s (shock on wages)
+*yrs = years, wgt = Yt (output) or xpt (export) or V (value-added), v = c (shock on price) or s (shock on wages)
 clear
 set matsize 7000
 set more off
