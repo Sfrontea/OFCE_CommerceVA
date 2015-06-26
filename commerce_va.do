@@ -16,7 +16,11 @@ clear
 set more off
 foreach i of numlist 1995 2000 2005 2008 2009 2010 2011 {
 insheet using "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/OECD_ICIO_June2015_`i'.csv", clear
-save "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/dofiles/OECD`i'.dta", replace
+*I sort the ICIO: 
+sort v1 aus_c01t05agr-disc in 1/2159
+order aus_c01t05agr-row_c95pvh, alphabetic after (v1)
+order aus_hc-row_consabr, alphabetic after (zaf_c95pvh)
+save "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/OECD`i'.dta", replace
 }
 
 *Same with the database for wages
@@ -39,22 +43,14 @@ end
 capture program drop prepare_database
 program prepare_database
 	args yrs 
-*First I sort the ICIO: 
-/*
-clear
-use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/OECD`yrs'.dta"
-sort v1 aus_c01t05agr-disc in 1/2159
-order aus_c01t05agr-row_c95pvh, alphabetic after (v1)
-order aus_hc-row_consabr, alphabetic after (zaf_c95pvh)
-save "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/OECD`yrs'.dta", replace
-*/
-*From the original database I keep only the output vector
+
+*From the ICIO database I keep only the output vector
 use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/OECD`yrs'.dta"
 keep if v1 == "OUT"
 drop v1
 save "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/OECD_`yrs'_OUT.dta", replace
 
-*From the original database I keep only the table for inter-industry inter-country trade
+*From the ICIO database I keep only the table for inter-industry inter-country trade
 clear
 use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/OECD`yrs'.dta"
 drop arg_consabr-disc
@@ -62,7 +58,7 @@ drop if v1 == "VA.TAXSUB" | v1 == "OUT"
 drop v1
 save "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/OECD_`yrs'_Z.dta", replace
 
-*From the original database I keep only the table for final demand
+*From the ICIO database I keep only the table for final demand
 clear
 use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/OECD`yrs'.dta"
 drop if v1 == "VA.TAXSUB" | v1 == "OUT"
@@ -452,10 +448,9 @@ set matsize 7000
 set more off
 global country "ARG AUS AUT BEL BGR BRA BRN CAN CHE CHL CHN CHNDOM CHNNPR CHNPRO COL CRI CYP CZE DEU DNK ESP EST FIN FRA GBR GRC HKG HRV HUN IDN IND IRL ISL ISR ITA JPN KHM KOR LTU LUX LVA MEX MEXGMF MEXNGM MLT MYS NLD NOR NZL PHL POL PRT ROU RoW RUS SAU SGP SVK SVN SWE THA TUN TUR TWN USA VNM ZAF"
 foreach i of global country {
-	compute_wage `yrs'
 	vector_shock `shk' `i'
 	shock_price `i' `v'
-	compute_xpt `yrs'
+	compute_X `yrs'
 	compute_V `yrs'
 	compute_mean `i' `wgt'
 }
@@ -506,7 +501,7 @@ foreach i of numlist 1995 2000 2005 2008 2009 2010 2011 {
 }
 
 foreach i of numlist 1995 2000 2005 {
-	base_wage `i' REM
+	base_wage `i' WAGE
 	base_wage `i' OUT
 }
 
@@ -521,9 +516,17 @@ foreach i of numlist 1995 2000 2005 {
 
 */
 
-prepare_database 2011
-compute_leontief 2011
-compute_fd 2011
+clear
+clear matrix
+prepare_database 2005
+compute_leontief 2005
+set more off
+base_wage 2005 WAGE
+set more off
+base_wage 2005 OUT
+compute_wage 2005
+database_csv
+table_mean 2005 Yt 1 s
 
 
 set more on
