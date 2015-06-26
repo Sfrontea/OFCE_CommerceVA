@@ -13,6 +13,7 @@ program save_data
 
 clear
 *Loop to save data for each year
+set more off
 foreach i of numlist 1995 2000 2005 2008 2009 2010 2011 {
 insheet using "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/OECD_ICIO_June2015_`i'.csv", clear
 save "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/dofiles/OECD`i'.dta", replace
@@ -20,6 +21,7 @@ save "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/dofiles/OECD`i'.dta", rep
 
 *Same with the database for wages
 clear
+set more off
 local tab "WAGE OUT"
 foreach n of local tab{
 	foreach i of numlist 1995 2000 2005 {
@@ -37,14 +39,17 @@ end
 capture program drop prepare_database
 program prepare_database
 	args yrs 
-
-*From the original database I keep only the output vector
+*First I sort the ICIO: 
+/*
 clear
 use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/OECD`yrs'.dta"
 sort v1 aus_c01t05agr-disc in 1/2159
 order aus_c01t05agr-row_c95pvh, alphabetic after (v1)
 order aus_hc-row_consabr, alphabetic after (zaf_c95pvh)
 save "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/OECD`yrs'.dta", replace
+*/
+*From the original database I keep only the output vector
+use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/OECD`yrs'.dta"
 keep if v1 == "OUT"
 drop v1
 save "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/OECD_`yrs'_OUT.dta", replace
@@ -52,9 +57,6 @@ save "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/OECD_`yrs'_OUT.
 *From the original database I keep only the table for inter-industry inter-country trade
 clear
 use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/OECD`yrs'.dta"
-sort v1 aus_c01t05agr-disc in 1/2159
-order aus_c01t05agr-row_c95pvh, alphabetic after (v1)
-order aus_hc-row_consabr, alphabetic after (zaf_c95pvh)
 drop arg_consabr-disc
 drop if v1 == "VA.TAXSUB" | v1 == "OUT"
 drop v1
@@ -63,9 +65,6 @@ save "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/OECD_`yrs'_Z.dt
 *From the original database I keep only the table for final demand
 clear
 use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/OECD`yrs'.dta"
-sort v1 aus_c01t05agr-disc in 1/2159
-order aus_c01t05agr-row_c95pvh, alphabetic after (v1)
-order aus_hc-row_consabr, alphabetic after (zaf_c95pvh)
 drop if v1 == "VA.TAXSUB" | v1 == "OUT"
 keep arg_consabr-disc
 save "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/finaldemand_`yrs'.dta", replace
@@ -478,6 +477,7 @@ end
 --------------------------------------------------------------------------------
 LIST ALL PROGRAMS AND RUN THEM
 --------------------------------------------------------------------------------
+save_data
 prepare_database
 compute_leontief
 compute_fd
@@ -522,6 +522,9 @@ foreach i of numlist 1995 2000 2005 {
 
 */
 
+save_data
+prepare_database 2011
+compute_leontief 2011
 
 set more on
 log close
