@@ -209,7 +209,7 @@ use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/WAGE_`yrs'.dta"
 mkmat WAGE, matrix (W)
 use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/OUT_`yrs'.dta"
 mkmat OUT, matrix (O)
-*Note: this is not the same output vector as Y. Indeed O comes from the wage database. For now, I use O for output in this section to distinguish them.
+*Note: this is not the same output vector as Y. Indeed O comes from the wage database. For now, I use O for output in this section to distinguish from Y.
 
 matrix Od=diag(O)
 matrix Od1=invsym(Od)
