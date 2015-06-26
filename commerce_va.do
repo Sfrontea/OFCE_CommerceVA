@@ -214,12 +214,12 @@ set more off
 use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/WAGE_`yrs'.dta"
 mkmat WAGE, matrix (W)
 use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/OUT_`yrs'.dta"
-mkmat OUT, matrix (X)
-*Note: this is not the same output vector as Y. Indeed it comes from the wage database.
+mkmat OUT, matrix (O)
+*Note: this is not the same output vector as Y. Indeed O comes from the wage database. For now, I use O for output in this section to distinguish them.
 
-matrix Xd=diag(X)
-matrix Xd1=invsym(Xd)
-matrix S=Xd1*W
+matrix Od=diag(O)
+matrix Od1=invsym(Od)
+matrix S=Od1*W
 *S is the column-vector containing the wage shares in production
 end
 
