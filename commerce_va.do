@@ -115,7 +115,6 @@ capture program drop compute_fd
 program compute_fd
 	args yrs
 *Create a final demand column-vector for all countries with a loop
-display "`yrs'"
 clear
 use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/finaldemand_`yrs'.dta"
 
@@ -522,9 +521,10 @@ foreach i of numlist 1995 2000 2005 {
 
 */
 
-save_data
 prepare_database 2011
 compute_leontief 2011
+compute_fd 2011
+
 
 set more on
 log close
