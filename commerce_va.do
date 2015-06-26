@@ -20,11 +20,11 @@ save "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/dofiles/OECD`i'.dta", rep
 
 *Same with the database for wages
 clear
-local tab "REM OUT"
+local tab "WAGE OUT"
 foreach n of local tab{
 	foreach i of numlist 1995 2000 2005 {
 	clear
-	import excel "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/REM_`i'.xlsx", sheet("`n'") firstrow
+	import excel "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/WAGE_`i'.xlsx", sheet("`n'") firstrow
 	save "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/`n'_`i'.dta", replace
 	}
 }
@@ -139,7 +139,7 @@ end
 capture program drop base_wage
 program base_wage
 	args yrs n
-*yrs = years, n = onglet REM or OUT
+*yrs = years, n = onglet WAGE or OUT
 	clear
 	use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/`n'_`yrs'.dta"
 
@@ -211,14 +211,14 @@ program compute_wage
 clear
 set matsize 7000
 set more off
-use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/REM_`yrs'.dta"
-mkmat REM, matrix (R)
+use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/WAGE_`yrs'.dta"
+mkmat WAGE, matrix (W)
 use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/OUT_`yrs'.dta"
 mkmat OUT, matrix (X)
 
 matrix Xd=diag(X)
 matrix Xd1=invsym(Xd)
-matrix S=Xd1*R
+matrix S=Xd1*W
 *S is the column-vector containing the wage shares in production
 end
 
