@@ -339,9 +339,9 @@ end
 *----------------------------------------------------------------------------------
 *CREATION OF A VECTOR CONTAINING MEAN EFFECTS OF A SHOCK ON PRICES FOR EACH COUNTRY
 *----------------------------------------------------------------------------------
-*Creation of the vector of export xpt
-capture program drop compute_xpt
-program compute_xpt
+*Creation of the vector of export X
+capture program drop compute_X
+program compute_X
 	args yrs
 clear
 set matsize 7000
@@ -357,8 +357,8 @@ drop `i'_invnt
 drop `i'_npish
 }
 drop if v1 == "VA.TAXSUB" | v1 == "OUT"
-egen xpt = rowtotal(arg_consabr-disc)
-mkmat xpt
+egen X = rowtotal(arg_consabr-disc)
+mkmat X
 
 end
 
@@ -383,9 +383,9 @@ clear
 use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/csv_`cty'.dta"
 matrix Yt = Y'
 svmat Yt
-svmat xpt
+svmat X
 svmat Vt
-*I decide whether I use the production or export or value-added vector as weight modifying the argument "wgt" : Yt or xpt or Vt
+*I decide whether I use the production or export or value-added vector as weight modifying the argument "wgt" : Yt or X or Vt
 *Compute the vector of mean effects :
 matrix P`cty't= P`cty''
 svmat P`cty't
@@ -448,7 +448,7 @@ end
 capture program drop table_mean
 program table_mean
 	args yrs wgt shk v
-*yrs = years, wgt = Yt (output) or xpt (export) or V (value-added), v = c (shock on price) or s (shock on wages)
+*yrs = years, wgt = Yt (output) or X (export) or V (value-added), v = c (shock on price) or s (shock on wages)
 clear
 set matsize 7000
 set more off

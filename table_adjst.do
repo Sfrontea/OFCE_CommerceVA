@@ -19,7 +19,7 @@ foreach i of global country {
 	}
 	local num_pays = `num_pays'+1
 }
-*tot_Xt is the vector of total production by country
+*tot_Yt is the vector of total production by country
 svmat tot_Yt
 *We standardize by the size of Germany. YDEU stands for the German total production
 gen YDEU = 6823167.5
