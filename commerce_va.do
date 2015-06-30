@@ -288,7 +288,7 @@ foreach i of global sector5 {
 	}
 }
 
-rename v1 c_shock
+rename v1 p_shock
 
 save "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/csv.dta", replace
 
@@ -305,20 +305,20 @@ set more off
 clear
 use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/csv.dta"
 
-replace c_shock = `shk' if c == "`cty'"
-*Example: c_shock = 0.05 if (c = "ARG" & s == "C01T05")
+replace p_shock = `shk' if c == "`cty'"
+*Example: p_shock = 0.05 if (c = "ARG" & s == "C01T05")
 
 *I extract vector c_shock from database with mkmat
-mkmat c_shock
-matrix c_shockt=c_shock'
+mkmat p_shock
+matrix p_shockt=p_shock'
 *The transpose of c_shock will be necessary for further computations
 
 *I compute vector s_shock which is the vector of a shock on wages
-matrix c_shockd = diag(c_shock)
-matrix s_shock  = c_shockd * S
-svmat s_shock
-matrix s_shockt = s_shock'
-
+matrix p_shockd = diag(p_shock)
+/*matrix w_shock  = w_shockd * S
+svmat w_shock
+matrix w_shockt = w_shock'
+*/
 end
 
 capture program drop shock_price
@@ -326,7 +326,7 @@ program shock_price
 	args cty v
 *Multiplying the transpose of vector shock `v'_shockt by L1 to get the impact of a shock on the output price vector
 matrix P`cty' = `v'_shockt * L1
-*Result example: using c_shock = 0.05 if c == "ARG" & s == "C01T05": if prices in agriculture increase by 5% in Argentina, output prices in the sector of agriculture in Argentina increase by 5.8%
+*Result example: using p_shock = 0.05 if c == "ARG" & s == "C01T05": if prices in agriculture increase by 5% in Argentina, output prices in the sector of agriculture in Argentina increase by 5.8%
 
 end
 
@@ -364,8 +364,8 @@ clear
 use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/OECD`yrs'.dta"
 keep if v1 == "VA.TAXSUB"
 drop v1
-mkmat arg_c01t05agr-zaf_c95pvh, matrix(V)
-matrix Vt = V'
+mkmat arg_c01t05agr-zaf_c95pvh, matrix(VA)
+matrix VAt = VA'
 end
 
 capture program drop compute_mean
@@ -378,8 +378,8 @@ use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/csv.dta"
 matrix Yt = Y'
 svmat Yt
 svmat X
-svmat Vt
-*I decide whether I use the production or export or value-added vector as weight modifying the argument "wgt" : Yt or X or Vt
+svmat VAt
+*I decide whether I use the production or export or value-added vector as weight modifying the argument "wgt" : Yt or X or VAt
 *Compute the vector of mean effects :
 matrix P`cty't= P`cty''
 svmat P`cty't
@@ -442,7 +442,7 @@ end
 capture program drop table_mean
 program table_mean
 	args yrs wgt shk v
-*yrs = years, wgt = Yt (output) or X (export) or Vt (value-added), v = c (shock on price) or s (shock on wages)
+*yrs = years, wgt = Yt (output) or X (export) or VAt (value-added), v = p (shock on price) or w (shock on wages)
 clear
 set matsize 7000
 set more off
@@ -490,29 +490,33 @@ foreach i of numlist 1995 2000 2005 {
 }
 
 foreach i of numlist 1995 2000 2005 2008 2009 2010 2011 {
-	table_mean `i' wgt shk c 
+	table_mean `i' wgt shk p 
 }
 
 foreach i of numlist 1995 2000 2005 {
-	table_mean `i' wgt shk s
+	table_mean `i' wgt shk w
 }
 
 
 */
 
-/*
+
 clear
 clear matrix
-prepare_database 2005
-compute_leontief 2005
+prepare_database 2010
+compute_leontief 2010
+
+/*
 set more off
-base_wage 2005 WAGE
+base_wage 1995 WAGE
 set more off
-base_wage 2005 OUT
-compute_wage 2005
-database_csv
-table_mean 2005 Vt 1 s
+base_wage 1995 OUT
+compute_wage 1995
 */
+
+
+database_csv
+table_mean 2010 Vt 1 p
 
 
 set more on
