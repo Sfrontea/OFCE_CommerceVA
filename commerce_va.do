@@ -305,20 +305,21 @@ set more off
 clear
 use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/csv.dta"
 
+
 replace p_shock = `shk' if c == "`cty'"
 *Example: p_shock = 0.05 if (c = "ARG" & s == "C01T05")
 
-*I extract vector c_shock from database with mkmat
+*I extract vector p_shock from database with mkmat
 mkmat p_shock
 matrix p_shockt=p_shock'
-*The transpose of c_shock will be necessary for further computations
+*The transpose of p_shock will be necessary for further computations
 
-*I compute vector s_shock which is the vector of a shock on wages
+*I compute vector w_shock which is the vector of a shock on wages
+
 matrix p_shockd = diag(p_shock)
-/*matrix w_shock  = w_shockd * S
+matrix w_shock  = p_shockd * S
 svmat w_shock
 matrix w_shockt = w_shock'
-*/
 end
 
 capture program drop shock_price
@@ -356,9 +357,9 @@ mkmat X
 
 end
 
-*Creation of the vector of value-added V
-capture program drop compute_V
-program compute_V
+*Creation of the vector of value-added VA
+capture program drop compute_VA
+program compute_VA
 	args yrs
 clear
 use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/OECD`yrs'.dta"
@@ -451,7 +452,7 @@ foreach i of global country {
 	vector_shock `shk' `i'
 	shock_price `i' `v'
 	compute_X `yrs'
-	compute_V `yrs'
+	compute_VA `yrs'
 	compute_mean `i' `wgt'
 }
 clear
@@ -471,52 +472,31 @@ end
 --------------------------------------------------------------------------------
 LIST ALL PROGRAMS AND RUN THEM
 --------------------------------------------------------------------------------
-/*
-foreach i of numlist 1995 2000 2005 2008 2009 2010 2011 {
-	prepare_database `i'
-}
-
-foreach i of numlist 1995 2000 2005 2008 2009 2010 2011 {
-	compute_leontief `i'
-}
-
-foreach i of numlist 1995 2000 2005 2008 2009 2010 2011 {
-	compute_fd `i'
-}
-
-foreach i of numlist 1995 2000 2005 {
-	base_wage `i' WAGE
-	base_wage `i' OUT
-}
-
-foreach i of numlist 1995 2000 2005 2008 2009 2010 2011 {
-	table_mean `i' wgt shk p 
-}
-
-foreach i of numlist 1995 2000 2005 {
-	table_mean `i' wgt shk w
-}
-
-
-*/
-
 
 clear
 clear matrix
-prepare_database 2010
-compute_leontief 2010
 
-/*
+foreach i of numlist 1995 2000 2005 2008 2009 2010 2011{
+	foreach j in Yt X VAt {
+		prepare_database `i'
+		compute_leontief `i'
+		database_csv
+		table_mean `i' `j' 1 p
+	}
+}
+
+clear
+clear matrix
 set more off
-base_wage 1995 WAGE
-set more off
-base_wage 1995 OUT
-compute_wage 1995
+foreach i of numlist 1995 2000 2005{
+	foreach j in Yt X VAt {
+		compute_leontief `i'
+		compute_wage `i'
+		database_csv
+		table_mean `i' `j' 1 w
+	}
+}
 */
-
-database_csv
-table_mean 2010 Yt 1 p
-
 
 set more on
 log close
