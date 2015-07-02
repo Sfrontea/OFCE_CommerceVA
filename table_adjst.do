@@ -254,7 +254,7 @@ drop shock`i'1
 rename shock`i'2 shock`i'1
 }
 
-save "/Users/sandrafronteau/Desktop/mean_`v'_`wgt'_`yrs'_3.dta", replace
+save "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_`v'_`wgt'_`yrs'_3.dta", replace
 
 set more off
 global country "ARG AUS AUT BEL BGR BRA BRN CAN CHE CHL CHN CHNDOM CHNNPR CHNPRO COL CRI CYP CZE DEU DNK ESP EST FIN FRA GBR GRC HKG HRV HUN IDN IND IRL ISL ISR ITA JPN KHM KOR LTU LUX LVA MEX MEXGMF MEXNGM MLT MYS NLD NOR NZL PHL POL PRT ROU RoW RUS SAU SGP SVK SVN SWE THA TUN TUR TWN USA VNM ZAF"
@@ -270,22 +270,42 @@ egen d = rowtotal(m_ARG1-m_ZAF1)
 rename d d_`yrs'
 mkmat d_`yrs'
 *d is a measure of integration
+
 end
 
 capture program drop table_density
 program table_density
+args wgt
 clear
 foreach i of numlist 1995 2000 2005 2008 2009 2010 2011{
-	foreach j in Yt VAt X{
-		compute_density p `j' `i'
-	}
-}
+		compute_density p `wgt' `i'
+		}
 
 clear
 set more off
 foreach i of numlist 1995 2000 2005 2008 2009 2010 2011{
 	svmat d_`i'
 }
+
+save "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/density_`v'_`wgt'.dta", replace
+
+end
+
+capture program drop table_density2
+program table_density2
+args wgt
+clear
+foreach i of numlist 1995 2000 2005{
+		compute_density w `wgt' `i'
+		}
+
+clear
+set more off
+foreach i of numlist 1995 2000 2005{
+	svmat d_`i'
+}
+
+save "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/density_`v'_`wgt'.dta", replace
 
 end
 
@@ -334,10 +354,15 @@ foreach i of numlist 1995 2000 2005{
 
 append_mean
 
-table_density
 
+foreach j in Yt VAt X{
+	table_density `j'
+}
+
+foreach j in Yt VAt X{
+	table_density2 `j'
+}
 */
-
 
 set more on
 log close
