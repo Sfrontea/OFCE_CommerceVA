@@ -257,3 +257,5 @@ foreach i of numlist 1995 2000 2005{
 }
 */
 
+set more on
+log close
