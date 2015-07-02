@@ -209,14 +209,7 @@ end
 capture program drop append_mean
 program append_mean
 clear
-use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_effect/mean_w_VAt_1995_2.dta"
-
-foreach i of numlist 2000 2005 {
-	foreach j in VAt Yt X {
-append using "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_w_`j'_`i'_2.dta"
-	}
-}
-
+use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_effect/mean_p_VAt_1995_2.dta"
 
 foreach i of numlist 1995 2000 2005 2008 2009 2010 2011 {
 	foreach j in VAt Yt X {
@@ -224,13 +217,21 @@ foreach i of numlist 1995 2000 2005 2008 2009 2010 2011 {
 		}
 }
 
-end
+foreach i of numlist 2000 2005 {
+	foreach j in VAt Yt X {
+append using "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_effect/mean_w_`j'_`i'_2.dta"
+	}
+}
+
+save "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_effect/mean_all_cor.dta"
+
+end 
 
 *-------------------------------------------------------------------------------
 *LIST ALL PROGRAMS AND RUN THEM
 *-------------------------------------------------------------------------------
 
-
+/*
 foreach i of numlist 1995 2000 2005 2008 2009 2010 2011{
 	foreach j in Yt X VAt{
 		clear
@@ -244,7 +245,6 @@ foreach i of numlist 1995 2000 2005 2008 2009 2010 2011{
 	}
 }
 
-/*
 foreach i of numlist 1995 2000 2005{
 	foreach j in Yt X VAt{
 		clear
@@ -253,9 +253,11 @@ foreach i of numlist 1995 2000 2005{
 		create_y `i'
 		compute_X `i'
 		compute_VA `i'
+		compute_totwgt `j'
 		table_adjst w `j' `i'
 	}
 }
+
 
 foreach i of numlist 1995 2000 2005 2008 2009 2010 2011{
 	foreach j in VAt Yt X {
@@ -268,6 +270,8 @@ foreach i of numlist 1995 2000 2005{
 		reshape_mean `i' `j' w
 	}
 }
+
+append_mean
 */
 
 set more on
