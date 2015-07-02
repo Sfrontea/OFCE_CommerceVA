@@ -162,6 +162,10 @@ drop tot_`wgt'1
 drop `wgt'DEU
 drop B
 
+rename cause country_of_shock
+rename effect country_shocked
+rename shock intensity
+
 save "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_effect/mean_`v'_`wgt'_`yrs'_cor.dta", replace
 
 end
