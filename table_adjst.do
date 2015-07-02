@@ -60,6 +60,7 @@ end
 
 capture program drop compute_totwgt
 program compute_totwgt
+args wgt
 clear
 use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/csv.dta"
 svmat `wgt'
@@ -229,10 +230,16 @@ end
 *LIST ALL PROGRAMS AND RUN THEM
 *-------------------------------------------------------------------------------
 
-/*
 
 foreach i of numlist 1995 2000 2005 2008 2009 2010 2011{
 	foreach j in Yt X VAt{
+		clear
+		clear matrix
+		set more off
+		create_y `i'
+		compute_X `i'
+		compute_VA `i'
+		compute_totwgt `j'
 		table_adjst p `j' `i'
 	}
 }
@@ -240,6 +247,12 @@ foreach i of numlist 1995 2000 2005 2008 2009 2010 2011{
 /*
 foreach i of numlist 1995 2000 2005{
 	foreach j in Yt X VAt{
+		clear
+		clear matrix
+		set more off
+		create_y `i'
+		compute_X `i'
+		compute_VA `i'
 		table_adjst w `j' `i'
 	}
 }
