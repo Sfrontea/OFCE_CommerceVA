@@ -17,6 +17,7 @@ use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/OECD_`yrs'_OUT.d
 mkmat arg_c01t05agr-zaf_c95pvh, matrix(Y)
 matrix Yt = Y'
 
+
 end
 
 *Creation of the vector X is required before table_adjst
@@ -42,7 +43,6 @@ mkmat X
 
 end
 
-
 *Creation of the vector VA is required before table_adjst
 capture program drop compute_VA
 program compute_VA
@@ -53,6 +53,7 @@ keep if v1 == "VA.TAXSUB"
 drop v1
 mkmat arg_c01t05agr-zaf_c95pvh, matrix(VA)
 matrix VAt = VA'
+
 
 end
 
@@ -119,6 +120,7 @@ end
 capture program drop table_adjst
 program table_adjst
 args v wgt yrs
+* yrs = years, wgt = weight : Yt (production) or VAt (value-added) or X (export), v = vector of shock : p (price) or w (wage)
 clear
 set matsize 7000
 set more off
@@ -176,6 +178,7 @@ end
 capture program drop reshape_mean
 program reshape_mean
 args yrs wgt v
+* yrs = years, wgt = weight : Yt (production) or VAt (value-added) or X (export), v = vector of shock : p (price) or w (wage)
 
 clear
 use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_effect/mean_`v'_`wgt'_`yrs'.dta"
@@ -216,13 +219,13 @@ clear
 use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_effect/mean_p_VAt_1995_2.dta"
 
 foreach i of numlist 1995 2000 2005 2008 2009 2010 2011 {
-	foreach j in VAt Yt X {
+	foreach j in VA Y X {
 		append using "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_effect/mean_p_`j'_`i'_2.dta"
 		}
 }
 
 foreach i of numlist 2000 2005 {
-	foreach j in VAt Yt X {
+	foreach j in VA Y X {
 append using "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_effect/mean_w_`j'_`i'_2.dta"
 	}
 }
@@ -262,7 +265,6 @@ foreach i of numlist 1995 2000 2005{
 	}
 }
 
-
 foreach i of numlist 1995 2000 2005 2008 2009 2010 2011{
 	foreach j in VAt Yt X {
 		reshape_mean `i' `j' p
@@ -277,6 +279,7 @@ foreach i of numlist 1995 2000 2005{
 
 append_mean
 */
+
 
 set more on
 log close
