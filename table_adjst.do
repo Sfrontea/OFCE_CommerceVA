@@ -1,3 +1,10 @@
+clear
+capture log using "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/results/$S_DATE $S_TIME.log", replace
+set matsize 7000
+*set mem 700m if earlier version of stata (<stata 12)
+set more off
+global dir "/Users/sandrafronteau/Documents/Stage_OFCE/Stata"
+
 *-------------------------------------------------------------------------------
 *TO USE ONLY IF table_adjst IS RUN SEPARATELY FROM table_mean
 *-------------------------------------------------------------------------------
@@ -9,6 +16,7 @@ clear
 use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/OECD_`yrs'_OUT.dta"
 mkmat arg_c01t05agr-zaf_c95pvh, matrix(Y)
 matrix Yt = Y'
+
 end
 
 *Creation of the vector X is required before table_adjst
@@ -45,8 +53,8 @@ keep if v1 == "VA.TAXSUB"
 drop v1
 mkmat arg_c01t05agr-zaf_c95pvh, matrix(VA)
 matrix VAt = VA'
-end
 
+end
 
 *Compute tot_`wgt' : wgt = Yt or VAt or X
 
@@ -157,8 +165,6 @@ save "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_effect/mea
 
 end
 
-table_adjst p X 2005
-
 *-------------------------------------------------------------------------------
 *RESHAPE TABLES OF MEAN EFFECT .dta
 *-------------------------------------------------------------------------------
@@ -195,17 +201,6 @@ save "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_effect/mea
 
 end
 
-foreach i of numlist 1995 2000 2005 2008 2009 2010 2011{
-	foreach j in VAt Yt X {
-		reshape_mean `i' `j' p
-	}
-}
-
-foreach i of numlist 1995 2000 2005{
-	foreach j in VAt Yt X{
-		reshape_mean `i' `j' w
-	}
-}
 
 *-------------------------------------------------------------------------------
 *APPEND ALL TYPES OF TABLES OF MEAN EFFECT TO CREATE A GLOBAL TABLE
@@ -234,6 +229,7 @@ end
 *LIST ALL PROGRAMS AND RUN THEM
 *-------------------------------------------------------------------------------
 
+/*
 
 foreach i of numlist 1995 2000 2005 2008 2009 2010 2011{
 	foreach j in Yt X VAt{
@@ -245,6 +241,18 @@ foreach i of numlist 1995 2000 2005 2008 2009 2010 2011{
 foreach i of numlist 1995 2000 2005{
 	foreach j in Yt X VAt{
 		table_adjst w `j' `i'
+	}
+}
+
+foreach i of numlist 1995 2000 2005 2008 2009 2010 2011{
+	foreach j in VAt Yt X {
+		reshape_mean `i' `j' p
+	}
+}
+
+foreach i of numlist 1995 2000 2005{
+	foreach j in VAt Yt X{
+		reshape_mean `i' `j' w
 	}
 }
 */
