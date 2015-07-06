@@ -344,15 +344,7 @@ foreach i of numlist 1995 2000 2005{
 }
 
 append_mean
-
-
-foreach j in Yt VAt X{
-	table_density `j'
-}
-
-foreach j in Yt VAt X{
-	table_density2 `j'
-}
+compute_density
 */
 
 set more on
