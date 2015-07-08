@@ -237,72 +237,41 @@ end
 *-------------------------------------------------------------------------------
 *COMPUTE A MEASURE OF DENSITY TO COMPARE MEAN_EFFECT MATRICES
 *-------------------------------------------------------------------------------
+capture program drop create_nw
+program create_nw
+	args v wgt yrs 
+		
+clear
+set more off
+use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_effect/mean_`v'_`wgt'_`yrs'.dta"
+global country "ARG AUS AUT BEL BGR BRA BRN CAN CHE CHL CHN CHNDOM CHNNPR CHNPRO COL CRI CYP CZE DEU DNK ESP EST FIN FRA GBR GRC HKG HRV HUN IDN IND IRL ISL ISR ITA JPN KHM KOR LTU LUX LVA MEX MEXGMF MEXNGM MLT MYS NLD NOR NZL PHL POL PRT ROU RoW RUS SAU SGP SVK SVN SWE THA TUN TUR TWN USA VNM ZAF"
+foreach h of global country{
+	gen shock`h'2 = (1/shock`h'1)
+	drop shock`h'1
+	rename shock`h'2 shock`h'1
+}
+
+save "/Users/sandrafronteau/Desktop/mean_`v'_`wgt'_`yrs'_3.dta", replace
+
+clear
+use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_effect/mean_`v'_`wgt'_`yrs'_3.dta"
+
+set more off
+global country "ARG AUS AUT BEL BGR BRA BRN CAN CHE CHL CHN CHNDOM CHNNPR CHNPRO COL CRI CYP CZE DEU DNK ESP EST FIN FRA GBR GRC HKG HRV HUN IDN IND IRL ISL ISR ITA JPN KHM KOR LTU LUX LVA MEX MEXGMF MEXNGM MLT MYS NLD NOR NZL PHL POL PRT ROU RoW RUS SAU SGP SVK SVN SWE THA TUN TUR TWN USA VNM ZAF"
+foreach c of global country{
+	replace shock`c'1 = 0 if shock`c'1 > 500
+}
+	
+nwset shockARG1-shockZAF1, name(ME_`v'_`wgt'_`yrs') labs(ARG AUS AUT BEL BGR BRA BRN CAN CHE CHL CHN CHNDOM CHNNPR CHNPRO COL CRI CYP CZE DEU DNK ESP EST FIN FRA GBR GRC HKG HRV HUN IDN IND IRL ISL ISR ITA JPN KHM KOR LTU LUX LVA MEX MEXGMF MEXNGM MLT MYS NLD NOR NZL PHL POL PRT ROU RoW RUS SAU SGP SVK SVN SWE THA TUN TUR TWN USA VNM ZAF)
+
+end
+
 capture program drop compute_density
 program compute_density
 
-clear
-set more off
-
-*Create networks for all table_mean .dta
-foreach i of numlist 1995 2000 2005 2008 2009 2010 2011{
-	foreach j in Yt VAt X{
-		clear
-		set more off
-		use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_effect/mean_p_`j'_`i'.dta"
-		global country "ARG AUS AUT BEL BGR BRA BRN CAN CHE CHL CHN CHNDOM CHNNPR CHNPRO COL CRI CYP CZE DEU DNK ESP EST FIN FRA GBR GRC HKG HRV HUN IDN IND IRL ISL ISR ITA JPN KHM KOR LTU LUX LVA MEX MEXGMF MEXNGM MLT MYS NLD NOR NZL PHL POL PRT ROU RoW RUS SAU SGP SVK SVN SWE THA TUN TUR TWN USA VNM ZAF"
-		foreach h of global country{
-			gen shock`h'2 = (1/shock`h'1)
-			drop shock`h'1
-			rename shock`h'2 shock`h'1
-		}
-
-	save "/Users/sandrafronteau/Desktop/mean_p_`j'_`i'_3.dta", replace
-
-		clear
-		use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_effect/mean_p_`j'_`i'_3.dta"
-
-		set more off
-		global country "ARG AUS AUT BEL BGR BRA BRN CAN CHE CHL CHN CHNDOM CHNNPR CHNPRO COL CRI CYP CZE DEU DNK ESP EST FIN FRA GBR GRC HKG HRV HUN IDN IND IRL ISL ISR ITA JPN KHM KOR LTU LUX LVA MEX MEXGMF MEXNGM MLT MYS NLD NOR NZL PHL POL PRT ROU RoW RUS SAU SGP SVK SVN SWE THA TUN TUR TWN USA VNM ZAF"
-		foreach c of global country{
-		replace shock`c'1 = 0 if shock`c'1 > 500
-		}
-	
-		nwset shockARG1-shockZAF1, name(ME_`i'_`j') labs(ARG AUS AUT BEL BGR BRA BRN CAN CHE CHL CHN CHNDOM CHNNPR CHNPRO COL CRI CYP CZE DEU DNK ESP EST FIN FRA GBR GRC HKG HRV HUN IDN IND IRL ISL ISR ITA JPN KHM KOR LTU LUX LVA MEX MEXGMF MEXNGM MLT MYS NLD NOR NZL PHL POL PRT ROU RoW RUS SAU SGP SVK SVN SWE THA TUN TUR TWN USA VNM ZAF)
-	}
-}
-
-foreach i of numlist 1995 2000 2005{
-	foreach j in Yt VAt X{
-		clear
-		set more off
-		use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_effect/mean_w_`j'_`i'.dta"
-		global country "ARG AUS AUT BEL BGR BRA BRN CAN CHE CHL CHN CHNDOM CHNNPR CHNPRO COL CRI CYP CZE DEU DNK ESP EST FIN FRA GBR GRC HKG HRV HUN IDN IND IRL ISL ISR ITA JPN KHM KOR LTU LUX LVA MEX MEXGMF MEXNGM MLT MYS NLD NOR NZL PHL POL PRT ROU RoW RUS SAU SGP SVK SVN SWE THA TUN TUR TWN USA VNM ZAF"
-		
-		foreach h of global country{
-			gen shock`h'2 = (1/shock`h'1)
-			drop shock`h'1
-			rename shock`h'2 shock`h'1
-		}
-
-	save "/Users/sandrafronteau/Desktop/mean_p_`j'_`i'_3.dta", replace
-		clear
-		set more off
-		use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_effect/mean_w_`j'_`i'_3.dta"
-
-		set more off
-		global country "ARG AUS AUT BEL BGR BRA BRN CAN CHE CHL CHN CHNDOM CHNNPR CHNPRO COL CRI CYP CZE DEU DNK ESP EST FIN FRA GBR GRC HKG HRV HUN IDN IND IRL ISL ISR ITA JPN KHM KOR LTU LUX LVA MEX MEXGMF MEXNGM MLT MYS NLD NOR NZL PHL POL PRT ROU RoW RUS SAU SGP SVK SVN SWE THA TUN TUR TWN USA VNM ZAF"
-		foreach c of global country{
-		replace shock`c'1 = 0 if shock`c'1 > 500
-		}
-	
-		nwset shockARG1-shockZAF1, name(ME_`i'_`j'_w) labs(ARG AUS AUT BEL BGR BRA BRN CAN CHE CHL CHN CHNDOM CHNNPR CHNPRO COL CRI CYP CZE DEU DNK ESP EST FIN FRA GBR GRC HKG HRV HUN IDN IND IRL ISL ISR ITA JPN KHM KOR LTU LUX LVA MEX MEXGMF MEXNGM MLT MYS NLD NOR NZL PHL POL PRT ROU RoW RUS SAU SGP SVK SVN SWE THA TUN TUR TWN USA VNM ZAF)
-	}
-}
-
-
 *Create a table with density per year for Yt, X, VAt
 foreach j in Yt VAt X{
-	nwsummarize ME_1995_`j' ME_2000_`j' ME_2005_`j' ME_2008_`j' ME_2009_`j' ME_2010_`j' ME_2011_`j', save(/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/density`j'.dta)
+	nwsummarize ME_p_`j'_1995 ME_p_`j'_2000 ME_p_`j'_2005 ME_p_`j'_2008 ME_p_`j'_2009 ME_p_`j'_2010 ME_p_`j'_2011, save(/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/density`j'.dta)
 }
 
 clear
@@ -442,7 +411,21 @@ foreach i of numlist 1995 2000 2005{
 }
 
 append_mean
+
+foreach i of numlist 1995 2000 2005 2008 2009 2010 2011{
+	foreach j in Yt VAt X{
+		create_nw p `j' `i'
+	}
+}
+
+foreach i of numlist 1995 2000 2005{
+	foreach j in Yt VAt X{
+		create_nw w `j' `i'
+	}
+}
+
 compute_density
+
 
 foreach i of numlist 1995 2000 2005 2008 2009 2010 2011{
 	foreach j in Yt VAt X{
