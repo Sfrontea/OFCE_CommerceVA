@@ -218,13 +218,13 @@ program append_mean
 clear
 use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_effect/mean_p_VAt_1995_2.dta"
 
-foreach i of numlist 1995 2000 2005 2008 2009 2010 2011 {
+foreach i of numlist 1995 2000 2005 2008 2009 2010 2011{
 	foreach j in VA Y X {
 		append using "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_effect/mean_p_`j'_`i'_2.dta"
-		}
+	}
 }
 
-foreach i of numlist 2000 2005 {
+foreach i of numlist 2000 2005{
 	foreach j in VA Y X {
 append using "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_effect/mean_w_`j'_`i'_2.dta"
 	}
@@ -306,10 +306,10 @@ global country "ARG AUS AUT BEL BGR BRA BRN CAN CHE CHL CHN CHNDOM CHNNPR CHNPRO
 
 *Take the inverse of elements so we get length. The greater the number, the further the node.
 foreach h of global country{
-			gen shock`h'2 = (1/shock`h'1)
-			drop shock`h'1
-			rename shock`h'2 shock`h'1
-		}
+	gen shock`h'2 = (1/shock`h'1)
+	drop shock`h'1
+	rename shock`h'2 shock`h'1
+}
 
 *Eliminate less important connections
 foreach i of global country{
@@ -362,6 +362,7 @@ foreach i of global country {
 }
 
 svmat tot_`wgt'
+rename tot_`wgt' Weight
 
 export excel using "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/node_`v'_`wgt'_`yrs'.xls", firstrow(variables) replace
 
@@ -440,6 +441,20 @@ foreach i of numlist 1995 2000 2005{
 }
 
 */
+
+
+foreach i of numlist 1995 2000 2005 2008 2009 2010 2011{
+	foreach j in Yt VAt X{
+		clear
+		set more off
+		create_y `i'
+		compute_X `i'
+		compute_VA `i'
+		compute_totwgt `j'
+		prepare_gephi p `j' `i'
+	}
+}
+
 
 set more on
 log close
