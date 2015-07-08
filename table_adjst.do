@@ -322,6 +322,81 @@ append using "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/density
 
 end
 
+*-------------------------------------------------------------------------------
+*PREPARE DATABASE FOR GEPHI
+*-------------------------------------------------------------------------------
+capture program drop prepare_gephi
+program prepare_gephi
+args v wgt yrs
+
+clear
+set more off
+use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_effect/mean_`v'_`wgt'_`yrs'.dta"
+
+global country "ARG AUS AUT BEL BGR BRA BRN CAN CHE CHL CHN CHNDOM CHNNPR CHNPRO COL CRI CYP CZE DEU DNK ESP EST FIN FRA GBR GRC HKG HRV HUN IDN IND IRL ISL ISR ITA JPN KHM KOR LTU LUX LVA MEX MEXGMF MEXNGM MLT MYS NLD NOR NZL PHL POL PRT ROU RoW RUS SAU SGP SVK SVN SWE THA TUN TUR TWN USA VNM ZAF"
+
+*Take the inverse of elements so we get length. The greater the number, the further the node.
+foreach h of global country{
+			gen shock`h'2 = (1/shock`h'1)
+			drop shock`h'1
+			rename shock`h'2 shock`h'1
+		}
+
+*Eliminate less important connections
+foreach i of global country{
+replace shock`i'1 = 0 if shock`i'1 > 500
+}
+
+*Create network
+nwset shockARG1-shockZAF1, name(ME_`v'_`wgt'_`yrs') labs(ARG AUS AUT BEL BGR BRA BRN CAN CHE CHL CHN CHNDOM CHNNPR CHNPRO COL CRI CYP CZE DEU DNK ESP EST FIN FRA GBR GRC HKG HRV HUN IDN IND IRL ISL ISR ITA JPN KHM KOR LTU LUX LVA MEX MEXGMF MEXNGM MLT MYS NLD NOR NZL PHL POL PRT ROU RoW RUS SAU SGP SVK SVN SWE THA TUN TUR TWN USA VNM ZAF)
+
+
+*Transform in edge list
+nwtoedge ME_`v'_`wgt'_`yrs'
+gen Type = "Directed"
+rename _fromid Source
+rename _toid Target
+rename ME_`v'_`wgt'_`yrs' Weight
+
+*Now the database is ready to be exported into excel spreadsheet as an edgelist.
+export excel using "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/edge_`v'_`wgt'_`yrs'.xls", firstrow(variables) replace
+
+
+
+*Build a database for nodes
+*This requires to have run create_y compute_x compute_VA and compute_totwgt
+
+clear
+set more off
+generate Id = ""
+local num_pays 0
+foreach i of numlist 1/67{
+	foreach j of numlist 1/1 {
+		local new = _N + 1
+		set obs `new'
+		local ligne = `j' + 1 *`num_pays'
+		replace Id = "`i'" in `ligne'
+	}
+	local num_pays = `num_pays'+1
+}
+
+
+global country "ARG AUS AUT BEL BGR BRA BRN CAN CHE CHL CHN CHNDOM CHNNPR CHNPRO COL CRI CYP CZE DEU DNK ESP EST FIN FRA GBR GRC HKG HRV HUN IDN IND IRL ISL ISR ITA JPN KHM KOR LTU LUX LVA MEX MEXGMF MEXNGM MLT MYS NLD NOR NZL PHL POL PRT ROU RoW RUS SAU SGP SVK SVN SWE THA TUN TUR TWN USA VNM ZAF"
+generate Label = ""
+local num_pays 0
+foreach i of global country {
+	foreach j of numlist 1/1 {
+		local ligne = `j' + 1 *`num_pays'
+		replace Label = "`i'" in `ligne'
+	}
+	local num_pays = `num_pays'+1
+}
+
+svmat tot_Yt
+
+export excel using "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/node_`v'_`wgt'_`yrs'.xls", firstrow(variables) replace
+
+end
 
 *-------------------------------------------------------------------------------
 *LIST ALL PROGRAMS AND RUN THEM
@@ -368,6 +443,19 @@ foreach i of numlist 1995 2000 2005{
 
 append_mean
 compute_density
+
+foreach i of numlist 1995 2000 2005 2008 2009 2010 2011{
+	foreach j in Yt VAt X{
+		prepare_gephi p `j' `i'
+	}
+}
+
+foreach i of numlist 1995 2000 2005{
+	foreach j in Yt VAt X{
+		prepare_gephi w `j' `i'
+	}
+}
+
 */
 
 set more on
