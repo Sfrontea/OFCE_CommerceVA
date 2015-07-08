@@ -370,5 +370,10 @@ append_mean
 compute_density
 */
 
+create_y 1995
+compute_X 1995
+compute_VA 1995
+compute_totwgt Yt
+
 set more on
 log close
