@@ -361,7 +361,7 @@ foreach i of global country {
 	local num_pays = `num_pays'+1
 }
 
-svmat tot_Yt
+svmat tot_`wgt'
 
 export excel using "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/node_`v'_`wgt'_`yrs'.xls", firstrow(variables) replace
 
