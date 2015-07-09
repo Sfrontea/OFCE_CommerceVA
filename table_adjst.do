@@ -154,7 +154,7 @@ foreach i of global country {
 	foreach j of numlist 1/1 {
 		local ligne = `j' + 1*`num_pays'
 		scalar b`i' = B[`ligne',1]
-		gen new_shock`i'= b`i' * shock`i'1
+		gen shock`i'= b`i' * shock`i'1
 	}
 local num_pays = `num_pays'+1
 }
@@ -163,10 +163,7 @@ drop shockARG1-shockZAF1
 drop tot_`wgt'1
 drop `wgt'DEU
 drop B
-
-rename cause country_of_shock
-rename effect country_shocked
-rename shock intensity
+drop k
 
 save "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_effect/mean_`v'_`wgt'_`yrs'_cor.dta", replace
 
@@ -177,11 +174,11 @@ end
 *-------------------------------------------------------------------------------
 capture program drop reshape_mean
 program reshape_mean
-args yrs wgt v
-* yrs = years, wgt = weight : Yt (production) or VAt (value-added) or X (export), v = vector of shock : p (price) or w (wage)
+args yrs wgt v _cor
+* yrs = years, wgt = weight : Yt (production) or VAt (value-added) or X (export), v = vector of shock : p (price) or w (wage), _cor : either write _cor if use corrected from size effect matrix or put nothing if use the non-corrected one
 
 clear
-use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_effect/mean_`v'_`wgt'_`yrs'.dta"
+use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_effect/mean_`v'_`wgt'_`yrs'`_cor'.dta"
 set more off
 global country "ARG AUS AUT BEL BGR BRA BRN CAN CHE CHL CHN CHNDOM CHNNPR CHNPRO COL CRI CYP CZE DEU DNK ESP EST FIN FRA GBR GRC HKG HRV HUN IDN IND IRL ISL ISR ITA JPN KHM KOR LTU LUX LVA MEX MEXGMF MEXNGM MLT MYS NLD NOR NZL PHL POL PRT ROU RoW RUS SAU SGP SVK SVN SWE THA TUN TUR TWN USA VNM ZAF"
 
@@ -195,7 +192,7 @@ foreach i of global country {
 	local num_pays = `num_pays'+1
 }
 
-order shockARG1-shockZAF1, alphabetic after (k)
+order shockARG-shockZAF, alphabetic after (k)
 reshape long shock, i(k) j(cause) string
 rename k effect
 order cause, first
@@ -205,7 +202,7 @@ gen shock_type = "`v'"
 gen weight = "`wgt'"
 gen year = "`yrs'"
 
-save "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_effect/mean_`v'_`wgt'_`yrs'_2.dta", replace
+save "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_effect/mean_`v'_`wgt'_`yrs'`_cor'_2.dta", replace
 
 end
 
@@ -226,11 +223,11 @@ foreach i of numlist 1995 2000 2005 2008 2009 2010 2011{
 
 foreach i of numlist 2000 2005{
 	foreach j in VA Y X {
-append using "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_effect/mean_w_`j'_`i'_2.dta"
+		append using "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_effect/mean_w_`j'_`i'_2.dta"
 	}
 }
 
-save "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_effect/mean_all_cor.dta"
+save "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_effect/mean_all.dta", replace
 
 end 
 
@@ -308,7 +305,7 @@ foreach h of global country{
 
 *Eliminate less important connections
 foreach i of global country{
-replace shock`i'1 = 0 if shock`i'1 > 500
+replace shock`i'1 = 0 if shock`i'1 >500
 }
 
 *Create network
