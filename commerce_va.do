@@ -334,6 +334,17 @@ end
 *----------------------------------------------------------------------------------
 *CREATION OF A VECTOR CONTAINING MEAN EFFECTS OF A SHOCK ON PRICES FOR EACH COUNTRY
 *----------------------------------------------------------------------------------
+*Creation of the vector Y is required before table_adjst if not done already
+capture program drop create_y
+program create_y
+args yrs
+clear
+use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/OECD_`yrs'_OUT.dta"
+mkmat arg_c01t05agr-zaf_c95pvh, matrix(Y)
+matrix Yt = Y'
+
+end
+
 *Creation of the vector of export X
 capture program drop compute_X
 program compute_X
@@ -433,6 +444,7 @@ foreach i of local country4 {
 
 mkmat tot_`wgt'
 mkmat shock`cty'
+
 *Vector shock`cty' contains the mean effects of a shock on prices (coming from the country `cty') on overall prices for each country
 
 end
@@ -497,12 +509,6 @@ foreach i of numlist 1995 2000 2005{
 	}
 }
 */
-
-compute_leontief 2005
-database_csv
-compute_wage 2005
-vector_shock 1 AUT
-shock_price AUT p
 
 set more on
 log close
