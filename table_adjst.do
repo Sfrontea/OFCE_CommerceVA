@@ -242,7 +242,7 @@ end
 *-------------------------------------------------------------------------------
 capture program drop create_nw
 program create_nw
-	args v wgt yrs _cor
+	args v wgt yrs _cor cut
 		
 clear
 set more off
@@ -257,35 +257,22 @@ foreach h of global country{
 set more off
 global country "ARG AUS AUT BEL BGR BRA BRN CAN CHE CHL CHN CHNDOM CHNNPR CHNPRO COL CRI CYP CZE DEU DNK ESP EST FIN FRA GBR GRC HKG HRV HUN IDN IND IRL ISL ISR ITA JPN KHM KOR LTU LUX LVA MEX MEXGMF MEXNGM MLT MYS NLD NOR NZL PHL POL PRT ROU RoW RUS SAU SGP SVK SVN SWE THA TUN TUR TWN USA VNM ZAF"
 foreach c of global country{
-	replace shock`c'1 = 0 if shock`c'1 > 500
+	replace shock`c'1 = 0 if shock`c'1 > `cut'
 }
 	
-nwset shockARG1-shockZAF1, name(ME_`v'_`wgt'_`yrs') labs(ARG AUS AUT BEL BGR BRA BRN CAN CHE CHL CHN CHNDOM CHNNPR CHNPRO COL CRI CYP CZE DEU DNK ESP EST FIN FRA GBR GRC HKG HRV HUN IDN IND IRL ISL ISR ITA JPN KHM KOR LTU LUX LVA MEX MEXGMF MEXNGM MLT MYS NLD NOR NZL PHL POL PRT ROU RoW RUS SAU SGP SVK SVN SWE THA TUN TUR TWN USA VNM ZAF)
+nwset shockARG1-shockZAF1, name(ME_`v'_`wgt'_`yrs'`_cor') labs(ARG AUS AUT BEL BGR BRA BRN CAN CHE CHL CHN CHNDOM CHNNPR CHNPRO COL CRI CYP CZE DEU DNK ESP EST FIN FRA GBR GRC HKG HRV HUN IDN IND IRL ISL ISR ITA JPN KHM KOR LTU LUX LVA MEX MEXGMF MEXNGM MLT MYS NLD NOR NZL PHL POL PRT ROU RoW RUS SAU SGP SVK SVN SWE THA TUN TUR TWN USA VNM ZAF)
 
 end
 
 capture program drop compute_density
 program compute_density
+args wgt _cor
 
 *Create a table with density per year for Yt, X, VAt
-foreach j in Yt VAt X{
-	nwsummarize ME_p_`j'_1995 ME_p_`j'_2000 ME_p_`j'_2005 ME_p_`j'_2008 ME_p_`j'_2009 ME_p_`j'_2010 ME_p_`j'_2011, save(/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/density`j'.dta)
-}
 
-clear
-use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/density_Yt.dta"
-append using "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/density_VAt.dta"
-append using "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/density_X.dta"
-save "/Users/sandrafronteau/Desktop/density.dta"
+nwsummarize ME_p_`wgt'_1995`_cor' ME_p_`wgt'_2000`_cor' ME_p_`wgt'_2005`_cor' ME_p_`wgt'_2008`_cor' ME_p_`wgt'_2009`_cor' ME_p_`wgt'_2010`_cor' ME_p_`wgt'_2011`_cor', save(/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/density`wgt'_p.dta)
 
-foreach j in Yt VAt X{
-	nwsummarize ME_1995_`j'_w ME_2000_`j'_w ME_2005_`j'_w, save(/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/density`j'_w.dta)
-}
-
-use "/Users/sandrafronteau/Desktop/density.dta"
-append using "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/density_Yt_w.dta"
-append using "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/density_VAt_w.dta"
-append using "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/density_X_w.dta"
+nwsummarize ME_w_`wgt'_1995`_cor' ME_w_`wgt'_2000`_cor' ME_w_`wgt'_2005`_cor', save(/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/density`wgt'_w.dta)
 
 end
 
@@ -397,6 +384,7 @@ foreach i of numlist 1995 2000 2005{
 	}
 }
 
+
 foreach i of numlist 1995 2000 2005 2008 2009 2010 2011{
 	foreach j in VAt Yt X {
 		reshape_mean `i' `j' p
@@ -411,20 +399,11 @@ foreach i of numlist 1995 2000 2005{
 
 append_mean
 
-foreach i of numlist 1995 2000 2005 2008 2009 2010 2011{
-	foreach j in Yt VAt X{
-		create_nw p `j' `i'
-	}
-}
 
-foreach i of numlist 1995 2000 2005{
-	foreach j in Yt VAt X{
-		create_nw w `j' `i'
-	}
-}
+compute_density Yt _cor
 
-compute_density
 
+/*
 
 foreach i of numlist 1995 2000 2005 2008 2009 2010 2011{
 	foreach j in Yt VAt X{
@@ -439,6 +418,17 @@ foreach i of numlist 1995 2000 2005 2008 2009 2010 2011{
 }
 
 */
+
+foreach i of numlist 1995 2000 2005 2008 2009 2010 2011{
+	create_nw p Yt `i' _cor 100
+}
+
+foreach i of numlist 1995 2000 2005{
+	create_nw w Yt `i' _cor 100
+}
+
+compute_density Yt _cor
+
 
 set more on
 log close
