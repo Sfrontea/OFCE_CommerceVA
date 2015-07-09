@@ -498,5 +498,11 @@ foreach i of numlist 1995 2000 2005{
 }
 */
 
+compute_leontief 2005
+database_csv
+compute_wage 2005
+vector_shock 1 AUT
+shock_price AUT p
+
 set more on
 log close

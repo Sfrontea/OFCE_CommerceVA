@@ -251,11 +251,6 @@ foreach h of global country{
 	rename shock`h'2 shock`h'1
 }
 
-save "/Users/sandrafronteau/Desktop/mean_`v'_`wgt'_`yrs'_3.dta", replace
-
-clear
-use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_effect/mean_`v'_`wgt'_`yrs'_3.dta"
-
 set more off
 global country "ARG AUS AUT BEL BGR BRA BRN CAN CHE CHL CHN CHNDOM CHNNPR CHNPRO COL CRI CYP CZE DEU DNK ESP EST FIN FRA GBR GRC HKG HRV HUN IDN IND IRL ISL ISR ITA JPN KHM KOR LTU LUX LVA MEX MEXGMF MEXNGM MLT MYS NLD NOR NZL PHL POL PRT ROU RoW RUS SAU SGP SVK SVN SWE THA TUN TUR TWN USA VNM ZAF"
 foreach c of global country{
@@ -430,21 +425,6 @@ compute_density
 
 foreach i of numlist 1995 2000 2005 2008 2009 2010 2011{
 	foreach j in Yt VAt X{
-		prepare_gephi p `j' `i'
-	}
-}
-
-foreach i of numlist 1995 2000 2005{
-	foreach j in Yt VAt X{
-		prepare_gephi w `j' `i'
-	}
-}
-
-*/
-
-
-foreach i of numlist 1995 2000 2005 2008 2009 2010 2011{
-	foreach j in Yt VAt X{
 		clear
 		set more off
 		create_y `i'
@@ -455,6 +435,7 @@ foreach i of numlist 1995 2000 2005 2008 2009 2010 2011{
 	}
 }
 
+*/
 
 set more on
 log close
