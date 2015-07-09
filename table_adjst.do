@@ -315,15 +315,15 @@ replace shock`i'1 = 0 if shock`i'1 >500
 }
 
 *Create network
-nwset shockARG1-shockZAF1, name(ME_`v'_`wgt'_`yrs') labs(ARG AUS AUT BEL BGR BRA BRN CAN CHE CHL CHN CHNDOM CHNNPR CHNPRO COL CRI CYP CZE DEU DNK ESP EST FIN FRA GBR GRC HKG HRV HUN IDN IND IRL ISL ISR ITA JPN KHM KOR LTU LUX LVA MEX MEXGMF MEXNGM MLT MYS NLD NOR NZL PHL POL PRT ROU RoW RUS SAU SGP SVK SVN SWE THA TUN TUR TWN USA VNM ZAF)
+nwset shockARG1-shockZAF1, name(ME_`v'_`wgt'_`yrs'`_cor') labs(ARG AUS AUT BEL BGR BRA BRN CAN CHE CHL CHN CHNDOM CHNNPR CHNPRO COL CRI CYP CZE DEU DNK ESP EST FIN FRA GBR GRC HKG HRV HUN IDN IND IRL ISL ISR ITA JPN KHM KOR LTU LUX LVA MEX MEXGMF MEXNGM MLT MYS NLD NOR NZL PHL POL PRT ROU RoW RUS SAU SGP SVK SVN SWE THA TUN TUR TWN USA VNM ZAF)
 
 
 *Transform in edge list
-nwtoedge ME_`v'_`wgt'_`yrs'
+nwtoedge ME_`v'_`wgt'_`yrs'`_cor'
 gen Type = "Directed"
 rename _fromid Source
 rename _toid Target
-rename ME_`v'_`wgt'_`yrs' Weight
+rename ME_`v'_`wgt'_`yrs'`_cor' Weight
 
 *Now the database is ready to be exported into excel spreadsheet as an edgelist.
 export excel using "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/edge_`v'_`wgt'_`yrs'`_cor'.xls", firstrow(variables) replace
