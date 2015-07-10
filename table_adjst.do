@@ -242,7 +242,7 @@ end
 *-------------------------------------------------------------------------------
 capture program drop create_nw
 program create_nw
-	args v wgt yrs _cor cut
+	args v wgt yrs cut _cor
 		
 clear
 set more off
@@ -281,29 +281,16 @@ end
 *-------------------------------------------------------------------------------
 capture program drop prepare_gephi
 program prepare_gephi
-args v wgt yrs _cor
+args v wgt yrs cut _cor
 
 clear
 set more off
-use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_effect/mean_`v'_`wgt'_`yrs'`_cor'.dta"
-
-global country "ARG AUS AUT BEL BGR BRA BRN CAN CHE CHL CHN CHNDOM CHNNPR CHNPRO COL CRI CYP CZE DEU DNK ESP EST FIN FRA GBR GRC HKG HRV HUN IDN IND IRL ISL ISR ITA JPN KHM KOR LTU LUX LVA MEX MEXGMF MEXNGM MLT MYS NLD NOR NZL PHL POL PRT ROU RoW RUS SAU SGP SVK SVN SWE THA TUN TUR TWN USA VNM ZAF"
-
-*Take the inverse of elements so we get length. The greater the number, the further the node.
-foreach h of global country{
-	gen shock`h'2 = (1/shock`h'1)
-	drop shock`h'1
-	rename shock`h'2 shock`h'1
-}
-
-*Eliminate less important connections
-foreach i of global country{
-replace shock`i'1 = 0 if shock`i'1 >500
-}
-
-*Create network
-nwset shockARG1-shockZAF1, name(ME_`v'_`wgt'_`yrs'`_cor') labs(ARG AUS AUT BEL BGR BRA BRN CAN CHE CHL CHN CHNDOM CHNNPR CHNPRO COL CRI CYP CZE DEU DNK ESP EST FIN FRA GBR GRC HKG HRV HUN IDN IND IRL ISL ISR ITA JPN KHM KOR LTU LUX LVA MEX MEXGMF MEXNGM MLT MYS NLD NOR NZL PHL POL PRT ROU RoW RUS SAU SGP SVK SVN SWE THA TUN TUR TWN USA VNM ZAF)
-
+create_y `yrs'
+compute_X `yrs'
+compute_VA `yrs'
+compute_totwgt `wgt'
+		
+create_nw `v' `wgt' `yrs' `cut' `_cor'
 
 *Transform in edge list
 nwtoedge ME_`v'_`wgt'_`yrs'`_cor'
@@ -316,9 +303,7 @@ rename ME_`v'_`wgt'_`yrs'`_cor' Weight
 export excel using "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/edge_`v'_`wgt'_`yrs'`_cor'.xls", firstrow(variables) replace
 
 
-
 *Build a database for nodes
-*This requires to have run create_y compute_x compute_VA and compute_totwgt
 
 clear
 set more off
@@ -399,35 +384,30 @@ foreach i of numlist 1995 2000 2005{
 
 append_mean
 
-
-compute_density Yt _cor
-
-
-/*
-
 foreach i of numlist 1995 2000 2005 2008 2009 2010 2011{
-	foreach j in Yt VAt X{
-		clear
-		set more off
-		create_y `i'
-		compute_X `i'
-		compute_VA `i'
-		compute_totwgt `j'
-		prepare_gephi p `j' `i'
-	}
-}
-
-*/
-
-foreach i of numlist 1995 2000 2005 2008 2009 2010 2011{
-	create_nw p Yt `i' _cor 100
+	create_nw p Yt `i' 500 _cor
 }
 
 foreach i of numlist 1995 2000 2005{
-	create_nw w Yt `i' _cor 100
+	create_nw w Yt `i' 100 _cor
 }
 
 compute_density Yt _cor
+
+foreach i of numlist 1995 2000 2005 2008 2009 2010 2011{
+	prepare_gephi p Yt `i' 500 _cor
+}
+
+foreach i of numlist 1995 2000 2005{
+	prepare_gephi w Yt `i' 100 _cor
+}
+
+
+	}
+}
+
+
+*/
 
 
 set more on
