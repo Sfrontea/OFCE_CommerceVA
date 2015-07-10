@@ -270,9 +270,9 @@ args wgt _cor
 
 *Create a table with density per year for Yt, X, VAt
 
-nwsummarize ME_p_`wgt'_1995`_cor' ME_p_`wgt'_2000`_cor' ME_p_`wgt'_2005`_cor' ME_p_`wgt'_2008`_cor' ME_p_`wgt'_2009`_cor' ME_p_`wgt'_2010`_cor' ME_p_`wgt'_2011`_cor', save(/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/density`wgt'_p.dta)
+nwsummarize ME_p_`wgt'_1995`_cor' ME_p_`wgt'_2000`_cor' ME_p_`wgt'_2005`_cor' ME_p_`wgt'_2008`_cor' ME_p_`wgt'_2009`_cor' ME_p_`wgt'_2010`_cor' ME_p_`wgt'_2011`_cor', save(/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/density`wgt'_p`_cor'.dta)
 
-nwsummarize ME_w_`wgt'_1995`_cor' ME_w_`wgt'_2000`_cor' ME_w_`wgt'_2005`_cor', save(/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/density`wgt'_w.dta)
+nwsummarize ME_w_`wgt'_1995`_cor' ME_w_`wgt'_2000`_cor' ME_w_`wgt'_2005`_cor', save(/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/density`wgt'_w`_cor'.dta)
 
 end
 
@@ -406,9 +406,16 @@ foreach i of numlist 1995 2000 2005{
 	}
 }
 
+foreach i of numlist 1995 2000 2005 2008 2009 2010 2011{
+	create_nw p X `i' 500
+}
 
+foreach i of numlist 1995 2000 2005{
+	create_nw w X `i' 100
+}
+
+compute_density X
 */
-
 
 set more on
 log close
