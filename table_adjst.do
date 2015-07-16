@@ -180,7 +180,7 @@ end
 capture program drop reshape_mean
 program reshape_mean
 args yrs wgt v _cor
-* yrs = years, wgt = weight : Yt (production) or VAt (value-added) or X (export), v = vector of shock : p (price) or w (wage), _cor : either write _cor if use corrected from size effect matrix or put nothing if use the non-corrected one
+* yrs = years, wgt = weight : Yt (production) or VAt (value-added) or X (export), v = vector of shock : p (price) or w (wage), _cor : either type _cor if use corrected from size effect matrix or put nothing if use the non-corrected one
 
 clear
 use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_effect/mean_`v'_`wgt'_`yrs'`_cor'.dta"
@@ -206,6 +206,7 @@ sort cause effect-shock
 gen shock_type = "`v'"
 gen weight = "`wgt'"
 gen year = "`yrs'"
+gen cor = "`_cor'"
 
 save "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_effect/mean_`v'_`wgt'_`yrs'`_cor'_2.dta", replace
 
@@ -217,23 +218,35 @@ end
 *-------------------------------------------------------------------------------
 capture program drop append_mean
 program append_mean
-args _cor
 clear
-use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_effect/mean_p_VAt_1995`_cor'_2.dta"
+use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_effect/mean_p_Yt_1995_2.dta"
 
 foreach i of numlist 1995 2000 2005 2008 2009 2010 2011{
-	foreach j in VA Y X {
-		append using "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_effect/mean_p_`j'_`i'`_cor'_2.dta"
+	foreach j in Yt X {
+		append using "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_effect/mean_p_`j'_`i'_2.dta"
 	}
 }
 
 foreach i of numlist 2000 2005{
-	foreach j in VA Y X {
-		append using "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_effect/mean_w_`j'_`i'`_cor'_2.dta"
+	foreach j in Yt X {
+		append using "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_effect/mean_w_`j'_`i'_2.dta"
 	}
 }
 
-save "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_effect/mean_all`_cor'.dta", replace
+foreach i of numlist 1995 2000 2005 2008 2009 2010 2011{
+	foreach j in Yt X {
+		append using "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_effect/mean_p_`j'_`i'_cor_2.dta"
+	}
+}
+
+foreach i of numlist 2000 2005{
+	foreach j in Yt X {
+		append using "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_effect/mean_w_`j'_`i'_cor_2.dta"
+	}
+}
+
+
+save "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_effect/mean_all.dta", replace
 
 end 
 
@@ -344,41 +357,52 @@ end
 
 /*
 foreach i of numlist 1995 2000 2005 2008 2009 2010 2011{
-	foreach j in Yt X VAt{
-		clear
-		clear matrix
-		set more off
-		create_y `i'
-		compute_X `i'
-		compute_VA `i'
+	clear
+	clear matrix
+	set more off
+	create_y `i'
+	compute_X `i'
+	foreach j in Yt X {
 		compute_totwgt `j'
 		table_adjst p `j' `i'
 	}
 }
 
 foreach i of numlist 1995 2000 2005{
-	foreach j in Yt X VAt{
-		clear
-		clear matrix
-		set more off
-		create_y `i'
-		compute_X `i'
-		compute_VA `i'
+	clear
+	clear matrix
+	set more off
+	create_y `i'
+	compute_X `i'
+
+	foreach j in Yt X {
 		compute_totwgt `j'
 		table_adjst w `j' `i'
 	}
 }
 
-
 foreach i of numlist 1995 2000 2005 2008 2009 2010 2011{
-	foreach j in VAt Yt X {
+	foreach j in Yt X {
 		reshape_mean `i' `j' p
 	}
 }
 
 foreach i of numlist 1995 2000 2005{
-	foreach j in VAt Yt X{
+	foreach j in Yt X{
 		reshape_mean `i' `j' w
+	}
+}
+
+
+foreach i of numlist 1995 2000 2005 2008 2009 2010 2011{
+	foreach j in Yt X {
+		reshape_mean `i' `j' p _cor
+	}
+}
+
+foreach i of numlist 1995 2000 2005{
+	foreach j in Yt X{
+		reshape_mean `i' `j' w _cor
 	}
 }
 
@@ -402,9 +426,6 @@ foreach i of numlist 1995 2000 2005{
 	prepare_gephi w Yt `i' 100 _cor
 }
 
-
-	}
-}
 
 foreach i of numlist 1995 2000 2005 2008 2009 2010 2011{
 	create_nw p X `i' 500

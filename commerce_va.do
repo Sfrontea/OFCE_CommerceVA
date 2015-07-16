@@ -317,9 +317,9 @@ matrix p_shockt=p_shock'
 *I compute vector w_shock which is the vector of a shock on wages
 
 matrix p_shockd = diag(p_shock)
-*matrix w_shock  = p_shockd * S
-*svmat w_shock
-*matrix w_shockt = w_shock'
+matrix w_shock  = p_shockd * S
+svmat w_shock
+matrix w_shockt = w_shock'
 end
 
 capture program drop shock_price
@@ -459,7 +459,7 @@ program table_mean
 clear
 set matsize 7000
 set more off
-*compute_wage `yrs'
+compute_wage `yrs'
 global country "ARG AUS AUT BEL BGR BRA BRN CAN CHE CHL CHN CHNDOM CHNNPR CHNPRO COL CRI CYP CZE DEU DNK ESP EST FIN FRA GBR GRC HKG HRV HUN IDN IND IRL ISL ISR ITA JPN KHM KOR LTU LUX LVA MEX MEXGMF MEXNGM MLT MYS NLD NOR NZL PHL POL PRT ROU ROW RUS SAU SGP SVK SVN SWE THA TUN TUR TWN USA VNM ZAF"
 foreach i of global country {
 	vector_shock `shk' `i'
@@ -486,12 +486,12 @@ end
 *LIST ALL PROGRAMS AND RUN THEM
 *--------------------------------------------------------------------------------
 
-
+/*
 clear
 set more off
 database_csv
 
-foreach i of numlist 2008 2009 2010 2011{
+foreach i of numlist 1995 2000 2005 2008 2009 2010 2011{
 	
 	compute_leontief `i'
 	foreach j in Yt X {
@@ -499,16 +499,15 @@ foreach i of numlist 2008 2009 2010 2011{
 	}
 }
 
-/*
 
-clear
 clear matrix
 set more off
+database_csv
 foreach i of numlist 1995 2000 2005{
-	foreach j in Yt X VAt {
-		compute_leontief `i'
-		compute_wage `i'
-		database_csv
+	clear
+	compute_leontief `i'
+	compute_wage `i'
+	foreach j in Yt X {
 		table_mean `i' `j' 1 w
 	}
 }
