@@ -253,13 +253,21 @@ end
 *-------------------------------------------------------------------------------
 *COMPUTE A MEASURE OF DENSITY TO COMPARE MEAN_EFFECT MATRICES
 *-------------------------------------------------------------------------------
-capture program drop create_nw
-program create_nw
-	args v wgt yrs cut _cor
-		
+capture program drop create_nw_p
+program create_nw_p
+	args wgt yrs cut
+*cut : 0.05 : 5% cut on self-loops
 clear
 set more off
-use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_effect/mean_`v'_`wgt'_`yrs'`_cor'.dta"
+use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_effect/mean_p_`wgt'_`yrs'.dta"
+
+mkmat shockARG1-shockZAF1, matrix(W)
+generate t=trace(W)
+generate t2=t/67
+generate t3=`cut'*(t2-1)
+generate t4=1/t3
+mkmat t4
+
 global country "ARG AUS AUT BEL BGR BRA BRN CAN CHE CHL CHN CHNDOM CHNNPR CHNPRO COL CRI CYP CZE DEU DNK ESP EST FIN FRA GBR GRC HKG HRV HUN IDN IND IRL ISL ISR ITA JPN KHM KOR LTU LUX LVA MEX MEXGMF MEXNGM MLT MYS NLD NOR NZL PHL POL PRT ROU ROW RUS SAU SGP SVK SVN SWE THA TUN TUR TWN USA VNM ZAF"
 foreach h of global country{
 	gen shock`h'2 = (1/shock`h'1)
@@ -270,22 +278,58 @@ foreach h of global country{
 set more off
 global country "ARG AUS AUT BEL BGR BRA BRN CAN CHE CHL CHN CHNDOM CHNNPR CHNPRO COL CRI CYP CZE DEU DNK ESP EST FIN FRA GBR GRC HKG HRV HUN IDN IND IRL ISL ISR ITA JPN KHM KOR LTU LUX LVA MEX MEXGMF MEXNGM MLT MYS NLD NOR NZL PHL POL PRT ROU ROW RUS SAU SGP SVK SVN SWE THA TUN TUR TWN USA VNM ZAF"
 foreach c of global country{
-	replace shock`c'1 = 0 if shock`c'1 > `cut'
+	replace shock`c'1 = 0 if shock`c'1 > t4
 }
 	
-nwset shockARG1-shockZAF1, name(ME_`v'_`wgt'_`yrs'`_cor') labs(ARG AUS AUT BEL BGR BRA BRN CAN CHE CHL CHN CHNDOM CHNNPR CHNPRO COL CRI CYP CZE DEU DNK ESP EST FIN FRA GBR GRC HKG HRV HUN IDN IND IRL ISL ISR ITA JPN KHM KOR LTU LUX LVA MEX MEXGMF MEXNGM MLT MYS NLD NOR NZL PHL POL PRT ROU ROW RUS SAU SGP SVK SVN SWE THA TUN TUR TWN USA VNM ZAF)
+nwset shockARG1-shockZAF1, name(ME_p_`wgt'_`yrs') labs(ARG AUS AUT BEL BGR BRA BRN CAN CHE CHL CHN CHNDOM CHNNPR CHNPRO COL CRI CYP CZE DEU DNK ESP EST FIN FRA GBR GRC HKG HRV HUN IDN IND IRL ISL ISR ITA JPN KHM KOR LTU LUX LVA MEX MEXGMF MEXNGM MLT MYS NLD NOR NZL PHL POL PRT ROU ROW RUS SAU SGP SVK SVN SWE THA TUN TUR TWN USA VNM ZAF)
 
 end
 
+
+capture program drop create_nw_2
+program create_nw_2
+	args wgt yrs v _cor
+clear
+set more off
+use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_effect/mean_`v'_`wgt'_`yrs'`_cor'.dta"
+
+svmat t4
+
+global country "ARG AUS AUT BEL BGR BRA BRN CAN CHE CHL CHN CHNDOM CHNNPR CHNPRO COL CRI CYP CZE DEU DNK ESP EST FIN FRA GBR GRC HKG HRV HUN IDN IND IRL ISL ISR ITA JPN KHM KOR LTU LUX LVA MEX MEXGMF MEXNGM MLT MYS NLD NOR NZL PHL POL PRT ROU ROW RUS SAU SGP SVK SVN SWE THA TUN TUR TWN USA VNM ZAF"
+foreach h of global country{
+	gen shock`h'2 = (1/shock`h'1)
+	drop shock`h'1
+	rename shock`h'2 shock`h'1
+}
+
+global country "ARG AUS AUT BEL BGR BRA BRN CAN CHE CHL CHN CHNDOM CHNNPR CHNPRO COL CRI CYP CZE DEU DNK ESP EST FIN FRA GBR GRC HKG HRV HUN IDN IND IRL ISL ISR ITA JPN KHM KOR LTU LUX LVA MEX MEXGMF MEXNGM MLT MYS NLD NOR NZL PHL POL PRT ROU ROW RUS SAU SGP SVK SVN SWE THA TUN TUR TWN USA VNM ZAF"
+foreach c of global country{
+	replace shock`c'1 = 0 if (shock`c'1 >=.)
+}
+
+set more off
+global country "ARG AUS AUT BEL BGR BRA BRN CAN CHE CHL CHN CHNDOM CHNNPR CHNPRO COL CRI CYP CZE DEU DNK ESP EST FIN FRA GBR GRC HKG HRV HUN IDN IND IRL ISL ISR ITA JPN KHM KOR LTU LUX LVA MEX MEXGMF MEXNGM MLT MYS NLD NOR NZL PHL POL PRT ROU ROW RUS SAU SGP SVK SVN SWE THA TUN TUR TWN USA VNM ZAF"
+foreach c of global country{
+	replace shock`c'1 = 0 if shock`c'1 > t4
+
+}
+
+
+nwset shockARG1-shockZAF1, name(ME_`v'_`wgt'_`yrs'`_cor') labs(ARG AUS AUT BEL BGR BRA BRN CAN CHE CHL CHN CHNDOM CHNNPR CHNPRO COL CRI CYP CZE DEU DNK ESP EST FIN FRA GBR GRC HKG HRV HUN IDN IND IRL ISL ISR ITA JPN KHM KOR LTU LUX LVA MEX MEXGMF MEXNGM MLT MYS NLD NOR NZL PHL POL PRT ROU ROW RUS SAU SGP SVK SVN SWE THA TUN TUR TWN USA VNM ZAF)
+
+nwsummarize ME_`v'_`wgt'_`yrs'`_cor'
+
+end
+
+
 capture program drop compute_density
 program compute_density
-args wgt _cor
+	args wgt
 
 *Create a table with density per year for Yt, X, VAt
 
-nwsummarize ME_p_`wgt'_1995`_cor' ME_p_`wgt'_2000`_cor' ME_p_`wgt'_2005`_cor' ME_p_`wgt'_2008`_cor' ME_p_`wgt'_2009`_cor' ME_p_`wgt'_2010`_cor' ME_p_`wgt'_2011`_cor', save(/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/density`wgt'_p`_cor'.dta)
-
-nwsummarize ME_w_`wgt'_1995`_cor' ME_w_`wgt'_2000`_cor' ME_w_`wgt'_2005`_cor', save(/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/density`wgt'_w`_cor'.dta)
+nwsummarize ME_p_`wgt'_1995 ME_p_`wgt'_2000 ME_p_`wgt'_2005 ME_p_`wgt'_2008 ME_p_`wgt'_2009 ME_p_`wgt'_2010 ME_p_`wgt'_2011 ME_w_`wgt'_1995 ME_w_`wgt'_2000 ME_w_`wgt'_2005 ME_p_`wgt'_1995_cor ME_p_`wgt'_2000_cor ME_p_`wgt'_2005_cor ME_p_`wgt'_2008_cor ME_p_`wgt'_2009_cor ME_p_`wgt'_2010_cor ME_p_`wgt'_2011_cor ME_w_`wgt'_1995_cor ME_w_`wgt'_2000_cor ME_w_`wgt'_2005_cor, save(/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/density`wgt'.dta)
+use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/density`wgt'.dta"
 
 end
 
@@ -408,15 +452,40 @@ foreach i of numlist 1995 2000 2005{
 
 append_mean
 
+
+nwclear
+set more off
 foreach i of numlist 1995 2000 2005 2008 2009 2010 2011{
-	create_nw p Yt `i' 500 _cor
+	foreach j in Yt X{
+	create_nw_p `j' `i' 0.05
+	}
+}
+
+
+foreach i of numlist 1995 2000 2005{
+	foreach j in Yt X{
+	create_nw_2 `j' `i' w
+	}
+}
+
+
+foreach i of numlist 1995 2000 2005 2008 2009 2010 2011{
+	foreach j in Yt X{
+	create_nw_2 `j' `i' p _cor
+	}
 }
 
 foreach i of numlist 1995 2000 2005{
-	create_nw w Yt `i' 100 _cor
+	foreach j in Yt X{
+	create_nw_2 `j' `i' w _cor
+	}
 }
 
-compute_density Yt _cor
+*/
+
+compute_density Yt
+
+/*
 
 foreach i of numlist 1995 2000 2005 2008 2009 2010 2011{
 	prepare_gephi p Yt `i' 500 _cor
@@ -427,15 +496,6 @@ foreach i of numlist 1995 2000 2005{
 }
 
 
-foreach i of numlist 1995 2000 2005 2008 2009 2010 2011{
-	create_nw p X `i' 500
-}
-
-foreach i of numlist 1995 2000 2005{
-	create_nw w X `i' 100
-}
-
-compute_density X
 */
 
 set more on
