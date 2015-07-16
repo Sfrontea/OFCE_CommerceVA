@@ -297,8 +297,8 @@ end
 *---------------------------------------------------------------------------------------------
 *COMPUTING THE EFFECT OF A SHOCK ON INPUT PRICES IN ONE SECTOR OF ONE COUNTRY ON OUTPUT PRICES
 *---------------------------------------------------------------------------------------------
-capture program drop vector_shock
-program vector_shock
+capture program drop vector_shock_p
+program vector_shock_p
 		args shk cty
 set matsize 7000
 set more off
@@ -314,12 +314,22 @@ mkmat p_shock
 matrix p_shockt=p_shock'
 *The transpose of p_shock will be necessary for further computations
 
-*I compute vector w_shock which is the vector of a shock on wages
+end
 
+capture program drop vector_shock_w
+program vector_shock_w
+*I compute vector w_shock which is the vector of a shock on wages
+	args shk cty
+set matsize 7000
+set more off
+clear
+use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/csv.dta"
+replace p_shock = `shk' if c == "`cty'"
 matrix p_shockd = diag(p_shock)
 matrix w_shock  = p_shockd * S
 svmat w_shock
 matrix w_shockt = w_shock'
+
 end
 
 capture program drop shock_price
@@ -459,10 +469,9 @@ program table_mean
 clear
 set matsize 7000
 set more off
-compute_wage `yrs'
 global country "ARG AUS AUT BEL BGR BRA BRN CAN CHE CHL CHN CHNDOM CHNNPR CHNPRO COL CRI CYP CZE DEU DNK ESP EST FIN FRA GBR GRC HKG HRV HUN IDN IND IRL ISL ISR ITA JPN KHM KOR LTU LUX LVA MEX MEXGMF MEXNGM MLT MYS NLD NOR NZL PHL POL PRT ROU ROW RUS SAU SGP SVK SVN SWE THA TUN TUR TWN USA VNM ZAF"
 foreach i of global country {
-	vector_shock `shk' `i'
+	vector_shock_`v' `shk' `i'
 	shock_price `i' `v'
 	compute_X `yrs'
 	compute_VA `yrs'
@@ -492,7 +501,6 @@ set more off
 database_csv
 
 foreach i of numlist 1995 2000 2005 2008 2009 2010 2011{
-	
 	compute_leontief `i'
 	foreach j in Yt X {
 		table_mean `i' `j' 1 p
