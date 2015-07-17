@@ -508,24 +508,18 @@ foreach i of numlist 1995 2000 2005 2008 2009 2010 2011{
 	}
 }
 
-
 clear matrix
 set more off
 database_csv
-foreach i of numlist 1995 2000 2005{
+foreach i of numlist 2000 2005{
 	clear
 	compute_leontief `i'
 	compute_wage `i'
 	foreach j in Yt X {
-		table_mean `i' `j' 1 w
+		table_mean `i' `j' 4 w
 	}
 }
 */
-
-clear
-set more off
-table_mean 2005 Yt 4 w
-
 
 set more on
 log close

@@ -327,7 +327,7 @@ program compute_density
 	args wgt
 
 *Create a table with density per year for Yt, X, VAt
-
+clear
 nwsummarize ME_p_`wgt'_1995 ME_p_`wgt'_2000 ME_p_`wgt'_2005 ME_p_`wgt'_2008 ME_p_`wgt'_2009 ME_p_`wgt'_2010 ME_p_`wgt'_2011 ME_w_`wgt'_1995 ME_w_`wgt'_2000 ME_w_`wgt'_2005 ME_p_`wgt'_1995_cor ME_p_`wgt'_2000_cor ME_p_`wgt'_2005_cor ME_p_`wgt'_2008_cor ME_p_`wgt'_2009_cor ME_p_`wgt'_2010_cor ME_p_`wgt'_2011_cor ME_w_`wgt'_1995_cor ME_w_`wgt'_2000_cor ME_w_`wgt'_2005_cor, save(/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/density`wgt'.dta)
 use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/density`wgt'.dta"
 
@@ -396,6 +396,28 @@ export excel using "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/n
 end
 
 *-------------------------------------------------------------------------------
+*CORRELATION BETWEEN MATRICES
+*-------------------------------------------------------------------------------
+capture program drop compute_corr
+program compute_corr
+
+clear
+set more off
+set matsize 7000
+*2.dta obtained from program reshape_mean
+use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_effect/mean_p_Yt_1995_2.dta"
+mkmat shock, matrix (p_Yt_1995)
+clear
+use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_effect/mean_p_X_1995_2.dta"
+mkmat shock, matrix (p_X_1995)
+clear
+svmat p_Yt_1995
+svmat p_X_1995
+correlate p_Yt_1995 p_X_1995
+
+end
+
+*-------------------------------------------------------------------------------
 *LIST ALL PROGRAMS AND RUN THEM
 *-------------------------------------------------------------------------------
 
@@ -425,6 +447,8 @@ foreach i of numlist 1995 2000 2005{
 	}
 }
 
+
+
 foreach i of numlist 1995 2000 2005 2008 2009 2010 2011{
 	foreach j in Yt X {
 		reshape_mean `i' `j' p
@@ -451,7 +475,6 @@ foreach i of numlist 1995 2000 2005{
 }
 
 append_mean
-
 
 nwclear
 set more off
@@ -480,8 +503,6 @@ foreach i of numlist 1995 2000 2005{
 	create_nw_2 `j' `i' w _cor
 	}
 }
-
-*/
 
 compute_density Yt
 
