@@ -400,20 +400,20 @@ end
 *-------------------------------------------------------------------------------
 capture program drop compute_corr
 program compute_corr
-
+	args v1 v2 wgt1 wgt2 yrs1 yrs2
 clear
 set more off
 set matsize 7000
 *2.dta obtained from program reshape_mean
-use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_effect/mean_p_Yt_1995_2.dta"
-mkmat shock, matrix (p_Yt_1995)
+use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_effect/mean_`v1'_`wgt1'_`yrs1'_2.dta"
+mkmat shock, matrix (`v1'_`wgt1'_`yrs1')
 clear
-use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_effect/mean_p_X_1995_2.dta"
-mkmat shock, matrix (p_X_1995)
+use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_effect/mean_`v2'_`wgt2'_`yrs2'_2.dta"
+mkmat shock, matrix (`v2'_`wgt2'_`yrs2')
 clear
-svmat p_Yt_1995
-svmat p_X_1995
-correlate p_Yt_1995 p_X_1995
+svmat `v1'_`wgt1'_`yrs1'
+svmat `v2'_`wgt2'_`yrs2'
+correlate `v1'_`wgt1'_`yrs1' `v2'_`wgt2'_`yrs2'
 
 end
 
@@ -516,6 +516,7 @@ foreach i of numlist 1995 2000 2005{
 	prepare_gephi w Yt `i' 100 _cor
 }
 
+compute_corr p p Yt X 1995 1995
 
 */
 
