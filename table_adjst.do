@@ -338,11 +338,12 @@ end
 *-------------------------------------------------------------------------------
 capture program drop prepare_gephi
 program prepare_gephi
-args v wgt yrs cut _cor
+args v wgt yrs _cor
 
 *Build a database for edges
 
 clear
+nwclear
 set more off
 create_y `yrs'
 compute_X `yrs'
@@ -352,8 +353,17 @@ compute_totwgt `wgt'
 clear
 set more off
 use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_effect/mean_p_`wgt'_`yrs'`_cor'.dta"
-mkmat shockARG1-shockZAF1, matrix(W)
-nwset shockARG1-shockZAF1, name(ME_p_`wgt'_`yrs'`_cor') labs(ARG AUS AUT BEL BGR BRA BRN CAN CHE CHL CHN CHNDOM CHNNPR CHNPRO COL CRI CYP CZE DEU DNK ESP EST FIN FRA GBR GRC HKG HRV HUN IDN IND IRL ISL ISR ITA JPN KHM KOR LTU LUX LVA MEX MEXGMF MEXNGM MLT MYS NLD NOR NZL PHL POL PRT ROU ROW RUS SAU SGP SVK SVN SWE THA TUN TUR TWN USA VNM ZAF)
+
+global country "ARG AUS AUT BEL BGR BRA BRN CAN CHE CHL CHN CHNDOM CHNNPR CHNPRO COL CRI CYP CZE DEU DNK ESP EST FIN FRA GBR GRC HKG HRV HUN IDN IND IRL ISL ISR ITA JPN KHM KOR LTU LUX LVA MEX MEXGMF MEXNGM MLT MYS NLD NOR NZL PHL POL PRT ROU ROW RUS SAU SGP SVK SVN SWE THA TUN TUR TWN USA VNM ZAF"
+
+foreach i of global country{
+gen shock`i'2 = shock`i'1*1000
+drop shock`i'1
+}
+
+
+mkmat shockARG2-shockZAF2, matrix(W)
+nwset shockARG2-shockZAF2, name(ME_p_`wgt'_`yrs'`_cor') labs(ARG AUS AUT BEL BGR BRA BRN CAN CHE CHL CHN CHNDOM CHNNPR CHNPRO COL CRI CYP CZE DEU DNK ESP EST FIN FRA GBR GRC HKG HRV HUN IDN IND IRL ISL ISR ITA JPN KHM KOR LTU LUX LVA MEX MEXGMF MEXNGM MLT MYS NLD NOR NZL PHL POL PRT ROU ROW RUS SAU SGP SVK SVN SWE THA TUN TUR TWN USA VNM ZAF)
 
 
 *Transform in edge list
@@ -421,6 +431,46 @@ clear
 svmat `v1'_`wgt1'_`yrs1'
 svmat `v2'_`wgt2'_`yrs2'
 correlate `v1'_`wgt1'_`yrs1' `v2'_`wgt2'_`yrs2'
+
+end
+*-------------------------------------------------------------------------------
+*COMPUTE WEIGHTED INDEGREE AND OUTDEGREE OF NODES
+*-------------------------------------------------------------------------------
+capture program drop compute_degree
+program compute_degree
+	args v wgt yrs
+clear
+set more off
+use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_effect/mean_`v'_`wgt'_`yrs'_2.dta"
+drop shock_type
+drop weight
+drop year
+drop cor
+egen outdegree = total(shock), by(cause)
+keep if effect == "ARG"
+mkmat outdegree
+clear
+use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_effect/mean_`v'_`wgt'_`yrs'.dta"
+egen indegree = rowtotal(shockARG-shockZAF)
+gen indegree2 = indegree/66
+svmat outdegree
+gen outdegree2 = outdegree/66
+
+keep (indegree-outdegree2)
+
+global country "ARG AUS AUT BEL BGR BRA BRN CAN CHE CHL CHN CHNDOM CHNNPR CHNPRO COL CRI CYP CZE DEU DNK ESP EST FIN FRA GBR GRC HKG HRV HUN IDN IND IRL ISL ISR ITA JPN KHM KOR LTU LUX LVA MEX MEXGMF MEXNGM MLT MYS NLD NOR NZL PHL POL PRT ROU ROW RUS SAU SGP SVK SVN SWE THA TUN TUR TWN USA VNM ZAF"
+
+generate k = ""
+local num_pays 0
+foreach i of global country {
+	foreach j of numlist 1/1 {
+		local ligne = `j' + 1 *`num_pays'
+		replace k = "`i'" in `ligne'
+	}
+	local num_pays = `num_pays'+1
+}
+
+order indegree-outdegree2, alphabetic after (k)
 
 end
 
@@ -513,21 +563,22 @@ foreach i of numlist 1995 2000 2005{
 
 compute_density Yt
 
-/*
 
 foreach i of numlist 1995 2000 2005 2008 2009 2010 2011{
-	prepare_gephi p Yt `i' _cor
+	prepare_gephi p Yt `i'
 }
 
+/*
 foreach i of numlist 1995 2000 2005{
 	prepare_gephi w Yt `i' _cor
 }
 
 compute_corr p p Yt X 1995 1995
 
-*/
 
-prepare_gephi p Yt 1995 0.05
+compute_degree p Yt 2011
+
+*/
 
 set more on
 log close
