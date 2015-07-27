@@ -511,7 +511,6 @@ foreach i of numlist 1995 2000 2005 2008 2009 2010 2011{
 	}
 }
 
-*/
 
 clear matrix
 set more off
@@ -524,6 +523,12 @@ foreach i of numlist 1995 2000 2005{
 		table_mean `i' `j' 4 w
 	}
 }
+
+*/
+compute_leontief 1995
+vector_shock_p 1 AUT
+shock_price AUT p
+compute_wage 1995
 
 set more on
 log close

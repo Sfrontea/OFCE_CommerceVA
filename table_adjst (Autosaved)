@@ -458,7 +458,6 @@ collapse (sum) shock, by(cause shock_type-cor)
 rename shock outdegree
 rename cause country
 
-
 save "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_all_outdegree.dta", replace
 
 clear
