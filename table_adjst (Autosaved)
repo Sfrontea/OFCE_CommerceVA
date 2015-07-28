@@ -37,6 +37,7 @@ drop `i'_hc
 drop `i'_invnt
 drop `i'_npish
 }
+
 drop if v1 == "VA.TAXSUB" | v1 == "OUT"
 egen X = rowtotal(arg_consabr-disc)
 mkmat X
@@ -121,14 +122,17 @@ capture program drop table_adjst
 program table_adjst
 args v wgt yrs
 * yrs = years, wgt = weight : Yt (production) or VAt (value-added) or X (export), v = vector of shock : p (price) or w (wage)
+*This program uses the formula : effect shock in a country shocked * Weight of Germany / Weight of the country cause of shock. It creates a new matrix corrected from the size effect. It is like if all countries had the size of Germany.
 clear
 set matsize 7000
 set more off
 use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_effect/mean_`v'_`wgt'_`yrs'.dta"
+*use the matrix of mean effects
 
 set more off
 global country "ARG AUS AUT BEL BGR BRA BRN CAN CHE CHL CHN CHNDOM CHNNPR CHNPRO COL CRI CYP CZE DEU DNK ESP EST FIN FRA GBR GRC HKG HRV HUN IDN IND IRL ISL ISR ITA JPN KHM KOR LTU LUX LVA MEX MEXGMF MEXNGM MLT MYS NLD NOR NZL PHL POL PRT ROU ROW RUS SAU SGP SVK SVN SWE THA TUN TUR TWN USA VNM ZAF"
 
+*generate k : it's a column with all names for countries. I create this column as a tool for computation in Stata.
 generate k = ""
 local num_pays 0
 foreach i of global country {
@@ -140,15 +144,19 @@ foreach i of global country {
 }
 
 svmat tot_`wgt'
+*I take tot_weight which is 67*1. For example, is a column of total production by country.
 
+*I extract the total weight of Germany (ex: production) and create a column 67*1 with the total weight of Germany repeated 67 times.
 gen `wgt'DEU = tot_`wgt'1 if k == "DEU"
 replace `wgt'DEU = `wgt'DEU[19] if missing(`wgt'DEU)
 
-
+*I compute a column which is the weight part of the formula : weight of Germany / weight of country cause of shock
 gen B = `wgt'DEU/tot_`wgt'
 
+*Saved as a vector in Stata's matrix memory
 mkmat B
 
+*I extract each element of B as a scalar to multiply by each element of the matrix of the mean effect. This create a whole new corrected matrix of mean effects.
 local num_pays 0
 foreach i of global country {
 	foreach j of numlist 1/1 {
@@ -159,6 +167,7 @@ foreach i of global country {
 local num_pays = `num_pays'+1
 }
 
+*I drop the former non-corrected matrix and all intermediate columns of computation
 drop shockARG1-shockZAF1
 drop tot_`wgt'1
 drop `wgt'DEU
@@ -170,6 +179,7 @@ foreach i of global country{
 	rename shock`i' shock`i'1
 }
 
+*Corrected matrices of mean effects are identified as : "_cor" 
 save "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_effect/mean_`v'_`wgt'_`yrs'_cor.dta", replace
  
 export excel using "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_effect/mean_`v'_`wgt'_`yrs'_cor.xls", firstrow(variables) replace
@@ -454,6 +464,7 @@ program compute_degree
 clear
 set more off
 use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_effect/mean_all.dta"
+
 collapse (sum) shock, by(cause shock_type-cor) 
 rename shock outdegree
 rename cause country
@@ -478,6 +489,9 @@ end
 *---------------------------------------------------------------------------------------
 *REGRESSION TO BETTER UNDERSTAND THE RELATIONSHIP BETWEEN YEARS, REGION AND SHOCK EFFECT
 *---------------------------------------------------------------------------------------
+*---------------------------------------------------------------------------------------
+*REGRESSION TO BETTER UNDERSTAND THE RELATIONSHIP BETWEEN YEARS, REGION AND SHOCK EFFECT
+*---------------------------------------------------------------------------------------
 capture program drop regress_effect
 program regress_effect
 	args v wgt cor
@@ -489,55 +503,19 @@ set more off
 set trace on 
 use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_effect/mean_all.dta"
 
+keep if shock_type == "`v'"
+keep if weight == "`wgt'"
+keep if cor == "`cor'"
+
+gen bilateral = cause+"_"+effect
+gen type = shock_type+"_"+weight+"_"+cor
 gen ln_shock = log(shock)
+drop if shock==0
 
-gen type_cause = cause+"_"+shock_type+"_"+weight+"_"+cor
+xi : reg ln_shock i.bilateral i.year
 
-gen type_effect = effect+"_"+shock_type+"_"+weight+"_"+cor
+outreg2 using /Users/sandrafronteau/Documents/Stage_OFCE/Stata/results/result_`v'_`wgt'_`cor'.xls, replace label 
 
-gen region = ""
-global eurozone "AUT BEL DEU CYP ESP EST FIN FRA GRC IRL ITA LTU LUX LVA MLT NLD PRT SVK SVN"
-global restEU "BGR CYP CZE DNK GBR HRV HUN LUX NOR POL ROU SWE"
-
-global rest "ARG AUS BRA BRN CAN CHL CHN CHNDOM CHNNPRE CHNPRO COL CRI HKG IDN IND ISR JPN KHM KOR MEX MEXGMF MEXNGM MYS NZL PHL ROW RUS SAU SGP THA TUN TUR TWN USA VNM ZAF"
-
-
-set more off
-foreach m of global rest{
-	foreach n of global rest{
-		replace region = "rest" if cause == "`m'" & effect =="`n'"
-	}
-}
-
-
-foreach k of global restEU{
-	foreach l of global restEU{
-		replace region = "restEU" if cause == "`k'" & effect == "`l'"
-	}
-}
-
-foreach i of global eurozone{
-	foreach j of global eurozone{
-		replace region = "eurozone" if cause == "`i'" & effect == "`j'"
-	}
-}
-
-set more off
-foreach i of global eurozone{
-	foreach j of global restEU{
-		replace region = "eurozone_restEU" if cause == "`i'" & effect == "`j'"
-		replace region = "eurosone_restEU" if cause == "`j'" & effect == "`i'"
-	}
-}
-
-replace region = "no" if region == ""
-
-gen yearegion = region+"_"+year
-
-
-xi : reg ln_shock i.type_cause i.type_effect i.yearegion
-
-outreg2 using /Users/sandrafronteau/Documents/Stage_OFCE/Stata/results/result3.xls, replace label 
 set trace off
 
 end
@@ -645,8 +623,23 @@ foreach i of numlist 1995 2000 2005{
 
 compute_corr p p Yt X 1995 1995
 
+global v "p w"
+global wgt "X Yt"
+global cor "no yes"
+foreach i of global v{
+	foreach j of global wgt{
+		foreach k of global cor{
+			regress_effect `i' `j' `k'
+		}
+	}
+}
 */
-regress_effect p Yt no
+regress_effect w Yt no
+regress_effect w X no
+testparm _Iyear_*, equal
+
+
+
 
 set more on
 log close

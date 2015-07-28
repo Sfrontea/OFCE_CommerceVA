@@ -525,10 +525,6 @@ foreach i of numlist 1995 2000 2005{
 }
 
 */
-compute_leontief 1995
-vector_shock_p 1 AUT
-shock_price AUT p
-compute_wage 1995
 
 set more on
 log close
