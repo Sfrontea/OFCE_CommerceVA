@@ -464,7 +464,7 @@ program compute_degree
 clear
 set more off
 use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_effect/mean_all.dta"
-
+drop if cause == effect
 collapse (sum) shock, by(cause shock_type-cor) 
 rename shock outdegree
 rename cause country
@@ -473,6 +473,7 @@ save "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_all_outdeg
 
 clear
 use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_effect/mean_all.dta"
+drop if cause == effect
 collapse (sum) shock, by(effect shock_type-cor) 
 rename shock indegree
 rename effect country
@@ -634,8 +635,11 @@ foreach i of global v{
 	}
 }
 */
-regress_effect p Yt yes
+regress_effect w Yt no
+regress_effect w X no
 testparm _Iyear_*, equal
+
+
 
 
 set more on

@@ -464,7 +464,7 @@ program compute_degree
 clear
 set more off
 use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_effect/mean_all.dta"
-
+drop if cause == effect
 collapse (sum) shock, by(cause shock_type-cor) 
 rename shock outdegree
 rename cause country
@@ -473,6 +473,7 @@ save "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_all_outdeg
 
 clear
 use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_effect/mean_all.dta"
+drop if cause == effect
 collapse (sum) shock, by(effect shock_type-cor) 
 rename shock indegree
 rename effect country
@@ -480,15 +481,12 @@ rename effect country
 merge 1:1 country-cor  using "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_all_outdegree.dta"
 drop _merge
 
-save "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_all_inou.dta"
+save "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_all_inou.dta", replace
 
-export excel using "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_all_inou.xls", firstrow(variables)
+export excel using "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_all_inou.xls", replace firstrow(variables)
 
 end
 
-*---------------------------------------------------------------------------------------
-*REGRESSION TO BETTER UNDERSTAND THE RELATIONSHIP BETWEEN YEARS, REGION AND SHOCK EFFECT
-*---------------------------------------------------------------------------------------
 *---------------------------------------------------------------------------------------
 *REGRESSION TO BETTER UNDERSTAND THE RELATIONSHIP BETWEEN YEARS, REGION AND SHOCK EFFECT
 *---------------------------------------------------------------------------------------
@@ -638,6 +636,7 @@ regress_effect w Yt no
 regress_effect w X no
 testparm _Iyear_*, equal
 
+compute_degree
 
 
 
