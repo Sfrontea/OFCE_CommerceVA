@@ -481,15 +481,12 @@ rename effect country
 merge 1:1 country-cor  using "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_all_outdegree.dta"
 drop _merge
 
-save "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_all_inou.dta"
+save "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_all_inou.dta", replace
 
-export excel using "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_all_inou.xls", firstrow(variables)
+export excel using "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_all_inou.xls", replace firstrow(variables)
 
 end
 
-*---------------------------------------------------------------------------------------
-*REGRESSION TO BETTER UNDERSTAND THE RELATIONSHIP BETWEEN YEARS, REGION AND SHOCK EFFECT
-*---------------------------------------------------------------------------------------
 *---------------------------------------------------------------------------------------
 *REGRESSION TO BETTER UNDERSTAND THE RELATIONSHIP BETWEEN YEARS, REGION AND SHOCK EFFECT
 *---------------------------------------------------------------------------------------
@@ -636,9 +633,7 @@ foreach i of global v{
 }
 */
 regress_effect w Yt no
-regress_effect w X no
 testparm _Iyear_*, equal
-
 
 
 
