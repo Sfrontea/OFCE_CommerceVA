@@ -64,9 +64,13 @@ drop if shock==0
 /*
 char type_cause[omit]"ARG_p_Yt_yes" "ARG_p_Yt_no"
 char type_effect[omit]"ARG_p_X_no"
-*Je ne peux omettre qu'une catégorie par variable
+*Je ne peux omettre qu'une cat√©gorie par variable
 */
 
+xi : i.type_cause i.type_effect i.yearregion
+
+
+/*
 
 xi : reg ln_shock i.type_cause i.type_effect i.yearegion
 
