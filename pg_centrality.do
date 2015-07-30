@@ -76,27 +76,33 @@ program compute_X
 
 use "$dir/OECD`yrs'.dta", clear
 
-global country2 "arg aus aut bel bgr bra brn can che chl chn chn*npr chn*pro chn*dom col cri cyp cze deu dnk esp est fin fra gbr grc hkg hrv hun idn ind irl isl isr ita jpn khm kor ltu lux lva mex mex*ngm mex*gmf mlt mys nld nor nzl phl pol prt rou row rus sau sgp svk svn swe tha tun tur twn usa vnm zaf"
+global country2 "arg aus aut bel bgr bra brn can che chl chn chn.npr chn.pro chn.dom col cri cyp cze deu dnk esp est fin fra gbr grc hkg hrv hun idn ind irl isl isr ita jpn khm kor ltu lux lva mex mex.ngm mex.gmf mlt mys nld nor nzl phl pol prt rou row rus sau sgp svk svn swe tha tun tur twn usa vnm zaf"
+
+generate pays = strlower(substr(v1,1,strpos(v1,"_")-1))
+drop if pays==""
 
 egen utilisations = rowtotal(aus_c01t05agr-disc)
 gen utilisations_dom = .
 
-foreach i of global country2 {
-	egen blouk = rowtotal(`i'_*)
-	replace utilisations_dom = blouk if strmatch(v1,strupper("`i'_"))==1
+foreach j of global country2 {
+	local i = "`j'"
+	if  ("`j'"=="chn.npr" | "`j'"=="chn.pro" |"`j'"=="chn.dom" ) {
+		local i = "chn" 
+	}
+	if  ("`j'"=="mex.ngm" | "`j'"=="mex.gmf") {
+			local i = "mex"
+	}
+	egen blouk = rowtotal(`i'*)
+	display "`i'" "`j'"
+	replace utilisations_dom = blouk if pays=="`j'"
+	codebook utilisations_dom if pays=="`j'"
 	drop blouk
-	egen blif = rowtotal(chn_*) if ("`i'"=="chn?npr" | "`i'"=="chn?pro" |"`i'"=="chn?dom")
-	replace utilisations_dom = utilisations_dom + blif
-	drop blif
-	egen blif = rowtotal(mex_*) if ("`i'"=="mex?ngm" | "`i'"=="mex?gmf")
-	replace utilisations_dom = utilisations_dom + blif
-	drop blif
 }
 generate X = utilisations - utilisations_dom
 	
 
 
-generate pays = strupper(substr(v1,1,strpos(v1,"_")-1))
+replace pays = strupper(pays)
 
 
 mkmat X
@@ -114,7 +120,7 @@ foreach i of numlist 1995 2000 2005 2008 2009 2010 2011{
 	}
 	save exports.dta, replace
 	
-}
+
 
 
 
