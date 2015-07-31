@@ -61,12 +61,6 @@ gen yearregion = region+"_"+year
 
 drop if shock==0
 
-/*
-char type_cause[omit]"ARG_p_Yt_yes" "ARG_p_Yt_no"
-char type_effect[omit]"ARG_p_X_no"
-*Je ne peux omettre qu'une catégorie par variable
-*/
-
 xi i.type_cause i.type_effect i.yearregion
 
 reg ln_shock _Itype_caus_2-_Itype_caus_4 _Itype_caus_13-_Itype_effe_536 _Iyearregio_3-_Iyearregio_35
@@ -77,8 +71,6 @@ set more off
 testparm _Iyearregio_*, equal
 
 set trace off
-
-*/
 
 end
 
