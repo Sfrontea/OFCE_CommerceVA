@@ -3,7 +3,6 @@ capture log using "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/results/$S_D
 set matsize 7000
 *set mem 700m if earlier version of stata (<stata 12)
 set more off
-global dir "/Users/sandrafronteau/Documents/Stage_OFCE/Stata"
 
 *-------------------------------------------------------------------------------
 *TO USE ONLY IF table_adjst IS RUN SEPARATELY FROM table_mean
@@ -458,34 +457,170 @@ end
 *-------------------------------------------------------------------------------
 *COMPUTE WEIGHTED INDEGREE AND OUTDEGREE OF NODES
 *-------------------------------------------------------------------------------
-capture program drop compute_degree
-program compute_degree
+***************************************************************************************************
+**************************We compute indegrees***********************************************
+***************************************************************************************************
 
-clear
-set more off
+capture program drop indegree
+program indegree
+* We use mean effect non corrected matrices
+
 use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_effect/mean_all.dta"
-drop if cause == effect
-collapse (sum) shock, by(cause shock_type-cor) 
-rename shock outdegree
-rename cause country
+drop if cor=="yes"
+drop cor
 
-save "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_all_outdegree.dta", replace
+* We compute the vector of indegrees
 
-clear
-use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_effect/mean_all.dta"
-drop if cause == effect
-collapse (sum) shock, by(effect shock_type-cor) 
+collapse (sum) shock, by(effect shock_type-year) 
 rename shock indegree
 rename effect country
 
-merge 1:1 country-cor  using "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_all_outdegree.dta"
-drop _merge
-
-save "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_all_inou.dta", replace
-
-export excel using "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_all_inou.xls", replace firstrow(variables)
+save "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_all_indegree.dta", replace
 
 end
+***************************************************************************************************
+**************************We compute outdegrees***********************************************
+***************************************************************************************************
+
+
+***************************************************************************************************
+* 1- Creation of table y of production: we create vector 1*67 of total production by country
+***************************************************************************************************
+capture program drop compute_Y
+program compute_Y
+args yrs
+
+/*Y vecteur de production*/ 
+clear
+use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/OECD_`yrs'_OUT.dta"
+drop arg_consabr-disc
+rename * prod*
+generate year = `yrs'
+reshape long prod, i(year) j(pays_sect) string
+generate pays = strupper(substr(pays_sect,1,strpos(pays_sect,"_")-1))
+collapse (sum) prod, by(pays year)
+
+end
+
+capture program drop append_Y
+program append_Y
+
+foreach i of numlist 1995 2000 2005 2008 2009 2010 2011{ 
+	compute_Y`i'
+	if `i'!=1995 {
+		append using "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/prod.dta"
+	}
+	save "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/prod.dta", replace
+	
+}
+
+end
+
+***************************************************************************************************
+* 2- Creation of table X of export: we create vector 1*67 of total export by country
+***************************************************************************************************
+
+*Creation of the vector of export X
+capture program drop compute_X
+program compute_X
+	args yrs
+
+use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/OECD`yrs'.dta", clear
+
+global country2 "arg aus aut bel bgr bra brn can che chl chn chn.npr chn.pro chn.dom col cri cyp cze deu dnk esp est fin fra gbr grc hkg hrv hun idn ind irl isl isr ita jpn khm kor ltu lux lva mex mex.ngm mex.gmf mlt mys nld nor nzl phl pol prt rou row rus sau sgp svk svn swe tha tun tur twn usa vnm zaf"
+
+generate pays = strlower(substr(v1,1,strpos(v1,"_")-1))
+drop if pays==""
+
+egen utilisations = rowtotal(aus_c01t05agr-disc)
+gen utilisations_dom = .
+
+foreach j of global country2 {
+	local i = "`j'"
+	if  ("`j'"=="chn.npr" | "`j'"=="chn.pro" |"`j'"=="chn.dom" ) {
+		local i = "chn" 
+	}
+	if  ("`j'"=="mex.ngm" | "`j'"=="mex.gmf") {
+			local i = "mex"
+	}
+	egen blouk = rowtotal(`i'*)
+	display "`i'" "`j'"
+	replace utilisations_dom = blouk if pays=="`j'"
+	codebook utilisations_dom if pays=="`j'"
+	drop blouk
+}
+
+generate X = utilisations - utilisations_dom
+	
+replace pays = strupper(pays)
+generate year = `yrs'
+
+keep year pays X
+*mkmat X
+
+end
+
+capture program drop append_X
+program append_X
+
+foreach i of numlist 1995 2000 2005 2008 2009 2010 2011{ 
+	compute_X `i'
+	if `i'!=1995 {
+	append using "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/exports.dta" 
+	}
+	save "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/exports.dta", replace
+}	
+
+end
+
+
+***************************************************************************************************
+* 3- We multiply the transposed matrix of weights by the matrix of mean effects and we keep the diagonal vector
+***************************************************************************************************
+capture program drop outdegree
+program outdegree
+
+clear
+use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_effect/mean_all.dta"
+drop if cor=="yes"
+drop cor
+rename effect pays
+destring year, replace
+
+merge m:1 pays year using "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/prod.dta"
+rename pays effect
+rename prod prod_effect
+
+replace prod = 0 if effect==cause
+bys (effect cause year shock shock_type weight) : egen somme_des_poids=total(prod)
+
+end
+
+outdegree
+
+/*
+import excel "C:\Users\L841580\Desktop\I-O-Stan\bases_stata\mean_effect/mean_p_X_`yrs'.xls", firstrow 
+mkmat shockARG1-shockZAF1, matrix(M)
+matrix OMt = Omega_`yrs''  /*matrice des pondérations oméga
+*/ 
+
+matrix OUTDEGREE=OMt*M
+mat outegree_`yrs'=vecdiag(OUTDEGREE)
+
+svmat OUTDEGREE
+save "C:\Users\L841580\Desktop\I-O-Stan\bases_stata/outdegree_`yrs'.dta", replace
+
+export excel using "C:\Users\L841580\Desktop\I-O-Stan\bases_stata/outdegree_`yrs'.xls", firstrow(variables) 
+
+end
+
+foreach i of numlist 1995 2000 2005 2008 2009 2010 2011{ 
+	clear matrix
+	set more off
+	create_y `i'
+	omega `i'
+	outdegree `i'
+}
 
 *---------------------------------------------------------------------------------------
 *REGRESSION TO BETTER UNDERSTAND THE RELATIONSHIP BETWEEN YEARS AND SHOCK EFFECT
@@ -680,6 +815,7 @@ foreach i of numlist 1995 2000 2005{
 
 compute_density Yt
 
+
 foreach i of numlist 1995 2000 2005 2008 2009 2010 2011{
 	prepare_gephi p X `i' _cor
 }
@@ -693,6 +829,13 @@ foreach i of numlist 1995 2000 2005{
 }
 
 compute_corr p p Yt X 1995 1995
+
+indegree
+compute_Y
+append_Y
+compute_X
+append_X
+outdegree
 
 global v "p w"
 global wgt "X Yt"
@@ -709,6 +852,7 @@ regress_effect_2
 
 */
 
+regress_effect p Yt no
 
 set more on
 log close
