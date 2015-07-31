@@ -591,12 +591,13 @@ merge m:1 pays year using "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data
 rename pays effect
 rename prod prod_effect
 
-replace prod = 0 if effect==cause
-bys (effect cause year shock shock_type weight) : egen somme_des_poids=total(prod)
+replace prod_effect = 0 if effect==cause
+bys effect cause year shock shock_type weight: egen somme_des_poids=total(prod)
 
 end
 
-outdegree
+capture program drop omega
+program omega
 
 /*
 import excel "C:\Users\L841580\Desktop\I-O-Stan\bases_stata\mean_effect/mean_p_X_`yrs'.xls", firstrow 
@@ -727,6 +728,77 @@ set trace off
 end
 
 *-------------------------------------------------------------------------------
+*PLOT A GRAPH WITH YEARS ON AXIS AND COEFFICIENTS FROM REGRESSION ON ORDINATE
+*-------------------------------------------------------------------------------
+program drop draw_graph
+program draw_graph
+	args v wgt cor
+	*with v = p or w, wgt = Yt or X, cor = no or yes
+clear
+set more off
+
+regress_effect `v' `wgt' `cor'
+
+*Once finished :
+*gen a variable coeff of coefficients (take from e(b) )
+*gen a variable se of standard deviation (Žcart-type also called "standard error" in Stata)
+*gen a variable year with 2000 to 2011
+
+matrix coeff = e(b)'
+svmat coeff
+rename coeff1 coeff
+
+*generate a variable of standard deviations
+matrix V = e(V)
+matrix SE2 = vecdiag(V)
+matrix SE = SE2'
+matmap SE se, m(sqrt(@))
+svmat se
+rename se1 se
+
+gen category = ""
+local num_pays 0
+forvalues i = 1/4495{
+	foreach j of numlist 1/1 {
+		local ligne = `j' + 1 *`num_pays'
+		replace category = "`i'" in `ligne'
+	}
+	local num_pays = `num_pays'+1
+}
+
+*Drop the very last coefficient (corresponding to the constant), and keep the last six coefficients corresponding to 2000, 2005, 2008, 2009, 2010, 2011
+
+drop if category == "4495"
+keep if category == "4489" | category == "4490" | category == "4491" | category == "4492" | category == "4493" | category == "4494"
+
+
+local yrs "2000 2005 2008 2009 2010 2011"
+generate year = ""
+local num_pays 0
+foreach i of local yrs {
+	foreach j of numlist 1/1 {
+		local ligne = `j' + 1 *`num_pays'
+		replace year = "`i'" in `ligne'
+	}
+	local num_pays = `num_pays'+1
+}
+destring year, replace
+
+generate upperbound = se+1.96
+generate lowerbound = se-1.96
+
+graph twoway line coeff year, xlabel(2000(1)2011) ylabel(0(0.05)0.63) title("Evolution of density 2000-2011")
+
+graph save Graph "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/results/Graph_evolution_1.gph", replace
+
+
+line coeff upperbound lowerbound year, xlabel(2000(1)2011) ylabel(-1.66(1)2.6) title("Evolution of density 2000-2011")
+
+graph save Graph "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/results/Graph_evolution_2.gph", replace
+
+end
+
+*-------------------------------------------------------------------------------
 *LIST ALL PROGRAMS AND RUN THEM
 *-------------------------------------------------------------------------------
 /*
@@ -850,9 +922,10 @@ foreach i of global v{
 
 regress_effect_2
 
+draw_graph p Yt no
+
 */
 
-regress_effect p Yt no
 
 set more on
 log close
