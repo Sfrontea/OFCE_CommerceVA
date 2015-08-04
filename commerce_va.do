@@ -520,7 +520,7 @@ clear
 set more off
 database_csv
 
-foreach i of numlist 1995 2000 2005 2008 2009 2010 2011{
+foreach i of numlist 2009 2010 2011{
 	compute_leontief `i'
 	foreach j in X {
 		table_mean `i' `j' 1 p

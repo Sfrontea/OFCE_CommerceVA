@@ -1317,7 +1317,7 @@ draw_graph_2
 
 */
 
-draw_graph_2
+draw_graph p Yt no
 
 set more on
 log close
