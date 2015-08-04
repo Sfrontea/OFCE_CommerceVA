@@ -609,6 +609,8 @@ set trace off
 
 end
 
+*This program runs a regression corresponding to the second equation we have : shock ijt = a * e(alpha i indicator i) * e(alpha j indicator j) * e(Bt r * indicator t r) * e(espilon ijt) with shock being the shock effect from the mean effect matrix, alpha i being the country from which the shock appears, alpha j being the country that receives the shock,  Bt r being an indicator for years and region, epsilon being the error term.
+*There are 5 regions : the eurozone, the rest of the EU, the region that embraces the relationships between the eurozone and the rest of the EU, the region "rest of the world", and "no", the relationships between Europe and the rest of the world;
 capture program drop regress_effect_2
 program regress_effect_2
 
@@ -668,7 +670,7 @@ drop if shock==0
 
 xi i.type_cause i.type_effect i.yearregion
 
-reg ln_shock _Itype_caus_2-_Itype_caus_4 _Itype_caus_13-_Itype_effe_536 _Iyearregio_3-_Iyearregio_35
+reg ln_shock _Itype_caus_2-_Itype_caus_4 _Itype_caus_13-_Itype_effe_536 _Iyearregio_2-_Iyearregio_35
 
 
 outreg2 using /Users/sandrafronteau/Documents/Stage_OFCE/Stata/results/result_with_region.xls, replace label 
@@ -680,9 +682,9 @@ set trace off
 
 end
 
-*-------------------------------------------------------------------------------
-*PLOT A GRAPH WITH YEARS ON AXIS AND COEFFICIENTS FROM REGRESSION ON ORDINATE
-*-------------------------------------------------------------------------------
+*---------------------------------------------------------------------------------------------------
+*PLOT A GRAPH WITH YEARS ON AXIS AND COEFFICIENTS FROM REGRESSION ON ORDINATE FOR THE FIRST EQUATION
+*---------------------------------------------------------------------------------------------------
 capture program drop draw_graph
 program draw_graph
 	args v wgt cor
@@ -721,10 +723,12 @@ forvalues i = 1/4495{
 	local num_pays = `num_pays'+1
 }
 
+destring category, replace
+
 *Drop the very last coefficient (corresponding to the constant), and keep the last six coefficients corresponding to 2000, 2005, 2008, 2009, 2010, 2011
 
-drop if category == "4495"
-keep if category == "4489" | category == "4490" | category == "4491" | category == "4492" | category == "4493" | category == "4494"
+drop if category == 4495
+keep if category >4488
 
 
 local yrs "2000 2005 2008 2009 2010 2011"
@@ -742,12 +746,226 @@ destring year, replace
 generate upperbound = coeff+se*1.96
 generate lowerbound = coeff-se*1.96
 
-line coeff upperbound lowerbound year, xlabel(2000(1)2011) ylabel(0.25(0.05)0.6) title("Evolution of density 2000-2011")
+line coeff upperbound lowerbound year, xlabel(2000(1)2011) ylabel(0.25(0.05)0.6) title("Evolution of density 2000-2011") subtitle("Price shock, production weight, noncorrected") lcolor(red black black) lpattern(solid dash dash)
 
 graph save Graph "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/results/Graph_evolution.gph", replace
 
 end
 
+*----------------------------------------------------------------------------------------------------
+*PLOT A GRAPH WITH YEARS ON AXIS AND COEFFICIENTS FROM REGRESSION ON ORDINATE FOR THE SECOND EQUATION
+*----------------------------------------------------------------------------------------------------
+capture program drop draw_graph_2
+program draw_graph_2
+	args v wgt cor
+	*with v = p or w, wgt = Yt or X, cor = no or yes
+clear
+set more off
+
+regress_effect_2
+
+*Once finished :
+*gen a variable coeff of coefficients (take from e(b) )
+*gen a variable se of standard deviation (Žcart-type also called "standard error" in Stata)
+*gen a variable year with 1995 to 2011
+
+clear 
+set more off
+
+matrix coeff = e(b)'
+svmat coeff
+rename coeff1 coeff
+
+*generate a variable of standard deviations
+matrix V = e(V)
+matrix SE2 = vecdiag(V)
+matrix SE = SE2'
+matmap SE se, m(sqrt(@))
+svmat se
+rename se1 se
+
+*generate a confidence interval with upperbound and lowerbound
+generate upperbound = coeff+se*1.96
+generate lowerbound = coeff-se*1.96
+
+*generate a variable category for each region
+gen category = ""
+local num_pays 0
+forvalues i = 1/1009{
+	foreach j of numlist 1/1 {
+		local ligne = `j' + 1 *`num_pays'
+		replace category = "`i'" in `ligne'
+	}
+	local num_pays = `num_pays'+1
+}
+
+destring category, replace
+
+drop if category == 1009
+keep if category > 974
+
+tostring category, replace
+
+local region1 "975 976 977 978 979 980"
+foreach i of local region1 {
+	replace category = "eurozone" if category == "`i'"
+}
+
+local region2 "981 982 983 984 985 986 987"
+foreach i of local region2 {
+	replace category = "eurozone_restEU" if category == "`i'"
+}
+
+
+local region3 "988 989 990 991 992 993 994"
+foreach i of local region3 {
+	replace category = "no" if category == "`i'"
+}
+
+local region4 "995 996 997 998 999 1000 1001"
+foreach i of local region4 {
+	replace category = "restEU" if category == "`i'"
+}
+
+local region5 "1002 1003 1004 1005 1006 1007 1008"
+foreach i of local region5 {
+	replace category = "rest" if category == "`i'"
+}
+
+save "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/coefficients.dta", replace
+
+*-------------------------------------------------------------------------------
+*create a variable of coefficients for each region as well as upperbounds and lowerbounds that correspond to a confidence interval for each region over the period
+clear
+set more off
+use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/coefficients.dta"
+
+keep if category == "eurozone"
+
+generate eurozone = coeff if category == "eurozone"
+replace eurozone = 0 if eurozone >= .
+mkmat eurozone
+rename upperbound upperbound1
+rename lowerbound lowerbound1
+mkmat upperbound1
+mkmat lowerbound1
+
+clear
+use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/coefficients.dta"
+
+keep if category == "eurozone_restEU"
+
+generate eurozone_restEU = coeff if category == "eurozone_restEU"
+replace eurozone_restEU = 0 if eurozone_restEU >= .
+mkmat eurozone_restEU
+rename upperbound upperbound2
+rename lowerbound lowerbound2
+mkmat upperbound2
+mkmat lowerbound2
+
+clear
+use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/coefficients.dta"
+keep if category == "no"
+generate no = coeff if category == "no"
+replace no = 0 if no >=.
+mkmat no
+rename upperbound upperbound3
+rename lowerbound lowerbound3
+mkmat upperbound3
+mkmat lowerbound3
+
+clear
+use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/coefficients.dta"
+keep if category == "restEU"
+generate restEU = coeff if category == "restEU"
+replace restEU = 0 if restEU >=.
+mkmat restEU
+rename upperbound upperbound4
+rename lowerbound lowerbound4
+mkmat upperbound4
+mkmat lowerbound4
+
+clear
+use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/coefficients.dta"
+keep if category == "rest"
+generate rest = coeff if category == "rest"
+replace rest = 0 if rest >=.
+mkmat rest
+rename upperbound upperbound5
+rename lowerbound lowerbound5
+mkmat upperbound5
+mkmat lowerbound5
+
+clear
+svmat eurozone_restEU
+svmat no 
+svmat restEU
+svmat rest
+svmat eurozone
+svmat upperbound1
+svmat lowerbound1
+svmat upperbound2
+svmat lowerbound2
+svmat upperbound3
+svmat lowerbound3
+svmat upperbound4
+svmat lowerbound4
+svmat upperbound5
+svmat lowerbound5
+
+local yrs "1995 2000 2005 2008 2009 2010 2011"
+generate year = ""
+local num_pays 0
+foreach i of local yrs {
+	foreach j of numlist 1/1 {
+		local ligne = `j' + 1 *`num_pays'
+		replace year = "`i'" in `ligne'
+	}
+	local num_pays = `num_pays'+1
+}
+
+destring year, replace
+replace year = 0 if year>=.
+
+save "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/coeff_region.dta", replace
+
+*-------------------------------------------------------------------------------
+*adjustement : indeed, the eurozone in 1995 is the dummy reference in the regression. Its coefficient is therefore 0 so we have to shift all values and set 0 in 1995 for the graph to be correct.
+clear
+use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/coeff_region.dta"
+
+replace eurozone1 = eurozone1[_n-1] if year == 2011
+replace eurozone1 = eurozone1[_n-1] if year == 2010
+replace eurozone1 = eurozone1[_n-1] if year == 2009
+replace eurozone1 = eurozone1[_n-1] if year == 2008
+replace eurozone1 = eurozone1[_n-1] if year == 2005
+replace eurozone1 = eurozone1[_n-1] if year == 2000
+replace eurozone1 = eurozone1[_n-1] if year == 1995
+replace eurozone1 = 0 if year == 1995
+
+replace upperbound1 = upperbound1[_n-1] if year == 2011
+replace upperbound1 = upperbound1[_n-1] if year == 2010
+replace upperbound1 = upperbound1[_n-1] if year == 2009
+replace upperbound1 = upperbound1[_n-1] if year == 2008
+replace upperbound1 = upperbound1[_n-1] if year == 2005
+replace upperbound1 = upperbound1[_n-1] if year == 2000
+replace upperbound1 = upperbound1[_n-1] if year == 1995
+replace upperbound1 = 0 if year == 1995
+
+replace lowerbound1 = lowerbound1[_n-1] if year == 2011
+replace lowerbound1 = lowerbound1[_n-1] if year == 2010
+replace lowerbound1 = lowerbound1[_n-1] if year == 2008
+replace lowerbound1 = lowerbound1[_n-1] if year == 2005
+replace lowerbound1 = lowerbound1[_n-1] if year == 2000
+replace lowerbound1 = lowerbound1[_n-1] if year == 1995
+replace lowerbound1 = 0 if year == 1995
+
+*-------------------------------------------------------------------------------
+*plot the graph
+line eurozone1 eurozone_restEU no restEU rest1 upperbound1 lowerbound1 upperbound2 lowerbound2 upperbound3 lowerbound3 upperbound4 lowerbound4 upperbound5 lowerbound5 year, xlabel(1995(2)2011) title("Evolution of density 1995-2011") subtitle("Price shock, production weight, noncorrected") lcolor(red green yellow blue purple dark dark dark dark dark dark dark dark dark dark) lpattern(solid solid solid solid solid dot dot dot dot dot dot dot dot dot dot) legend(order(1 2 3 4 5))
+graph save Graph "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/results/graph_region_6.gph", replace
+
+end
 *-------------------------------------------------------------------------------
 *LIST ALL PROGRAMS AND RUN THEM
 *-------------------------------------------------------------------------------
@@ -870,11 +1088,9 @@ foreach i of global v{
 	}
 }
 
-regress_effect_2
-
 */
-
-draw_graph p Yt no
+regress_effect_2
 
 set more on
 log close
+
