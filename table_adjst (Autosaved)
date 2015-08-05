@@ -580,7 +580,7 @@ capture program drop outdegree
 program outdegree
 
 clear
-use "$dir/mean_all2.dta"
+use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_effect/mean_all.dta"
 drop if cor=="yes"
 drop cor
 
@@ -733,9 +733,15 @@ program graph_degree_2
 clear
 set more off
 use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_all_inou.dta"
-*-------------------------------------------------------------------------------
-* graphiques in-degree/out-degree Zone euro pour chaque année, chaque matrice
-*-------------------------------------------------------------------------------
+
+global ZE "AUT BEL CYP DEU ESP EST FIN FRA GRC IRL ITA LTU LUX LVA MLT NLD PRT"
+
+gen dum_ZE=0
+local ZE "AUT BEL CYP DEU ESP EST FIN FRA GRC IRL ITA LTU LUX LVA MLT NLD PRT"
+foreach n of local ZE{
+replace dum_ZE=1 if (country=="`n'")
+}
+
 
 *-------------------------------------------------------------------------------
 * graphiques in-degree/out-degree Zone euro pour 1995/2011, chaque matrice
@@ -793,6 +799,7 @@ gen ln_shock = log(shock)
 drop if shock==0
 
 xi : reg ln_shock i.bilateral i.year
+estimates store reg1
 
 outreg2 using /Users/sandrafronteau/Documents/Stage_OFCE/Stata/results/result_`v'_`wgt'_`cor'.xls, replace label 
 testparm _Iyear_*, equal
@@ -823,7 +830,7 @@ gen type_effect = effect+"_"+shock_type+"_"+weight+"_"+cor
 gen region = ""
 global eurozone "AUT BEL DEU CYP ESP EST FIN FRA GRC IRL ITA LTU LUX LVA MLT NLD PRT SVK SVN"
 global restEU "BGR CZE DNK GBR HRV HUN NOR POL ROU SWE"
-global rest "ARG AUS BRA BRN CAN CHL CHN CHNDOM CHNNPRE CHNPRO COL CRI HKG IDN IND ISR JPN KHM KOR MEX MEXGMF MEXNGM MYS NZL PHL ROW RUS SAU SGP THA TUN TUR TWN USA VNM ZAF"
+global rest "ARG AUS BRA BRN CAN CHL CHN CHNDOM CHNNPR CHNPRO COL CRI HKG IDN IND ISR JPN KHM KOR MEX MEXGMF MEXNGM MYS NZL PHL ROW RUS SAU SGP THA TUN TUR TWN USA VNM ZAF"
 
 
 set more off
@@ -962,14 +969,19 @@ replace lowerbound = 0 if year == 1995
 local var "coeff upperbound lowerbound"
 foreach i of local var{
 replace `i' = exp(`i') * 100
-replace `i' = 100 if year == 1995
+replace coeff = 100 if year == 1995
 }
 
-graph twoway connected coeff upperbound lowerbound year, xlabel(1995(2)2011) ///
-ylabel(0(0.1)0.6) title("Evolution of integration 1995-2011") subtitle("Price shock, production weight, noncorrected") ///
-ytitle(index) xtitle(year) mcolor(red black black) lcolor(red black black) lpattern(solid dash dash)
+save "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/graph1.dta"
 
-graph save Graph "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/results/graph_evolution_7.gph", replace
+clear
+use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/graph1.dta"
+
+graph twoway connected coeff upperbound lowerbound year, xlabel(1995(2)2011) ///
+ title("Evolution of integration 1995-2011") subtitle("Price shock, production weight, noncorrected") ///
+ytitle(index) xtitle(year) mcolor(red none none) lcolor(red black black) lpattern(solid dash dash)
+
+graph save Graph "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/results/graph_evolution_9.gph", replace
 
 end
 
@@ -1176,6 +1188,10 @@ replace lowerbound1 = 0 if year == 1995
 local var "eurozone_restEU1 no1 restEU1 rest1 eurozone1 upperbound11 lowerbound11 upperbound21 lowerbound21 upperbound31 lowerbound31 upperbound41 lowerbound41 upperbound51 lowerbound51"
 foreach i of local var{
 replace `i' = exp(`i') * 100
+}
+
+local var2 "eurozone_restEU1 no1 restEU1 rest1 eurozone1 upperbound11 lowerbound11"
+foreach i of local var2{
 replace `i' = 100 if year == 1995
 }
 
@@ -1299,6 +1315,10 @@ append_Y
 compute_X
 append_X
 outdegree
+data_degree
+graph_degree_1
+graph_degree_2
+
 
 global v "p w"
 global wgt "X Yt"
@@ -1317,7 +1337,6 @@ draw_graph_2
 
 */
 
-draw_graph p Yt no
 
 set more on
 log close
