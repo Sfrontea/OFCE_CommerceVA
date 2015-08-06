@@ -2,7 +2,7 @@ clear
 set more off
 set matsize 7000
 
-global dir ~/Dropbox/commerce en VA
+global dir C:\Users\L841580\Desktop\I-O-Stan\bases_stata
 cd "$dir"
 
 *----------------------------------------------------------------------------------
@@ -14,21 +14,27 @@ cd "$dir"
 ***************************************************************************************************
 
 
-
 * On récupère la matrice des effets moyens, non corrigés
+capture program drop indegree
+program indegree
+*args yrs
 
-use "$dir/Results mean_effect/mean_all.dta"
+use "$dir/mean_all2.dta"
 drop if cor=="yes"
 drop cor
 
 * On calcule le vecteur des indegree
-
+replace shock = 0 if effect==cause
 collapse (sum) shock, by(effect shock_type-year) 
 rename shock indegree
-rename effect country
+rename effect pays
+sort year weight shock_type pays   , stable
+destring year, replace
 
-save "$dir\Centrality\mean_all_indegree.dta", replace
+save "$dir\mean_all_indegree.dta", replace
+end
 
+indegree
 ***************************************************************************************************
 ************************** On calcule les outdegrees***********************************************
 ***************************************************************************************************
@@ -65,6 +71,11 @@ foreach i of numlist 1995 2000 2005 2008 2009 2010 2011{
 }
 
 
+sort year , stable
+
+*save prod.dta, replace
+use prod.dta
+use exports.dta
 ***************************************************************************************************
 * 2- Création des tables X de production : on crée le vecteur 1*67 des productions totales de chauqe pays
 ***************************************************************************************************
@@ -100,33 +111,33 @@ foreach j of global country2 {
 }
 generate X = utilisations - utilisations_dom
 	
-
-
 replace pays = strupper(pays)
-
-
-mkmat X
+generate year = `yrs'
+keep year pays X
+collapse (sum) X, by(pays year)
 
 end
 
+set more off
 compute_X 1995
-
 
 
 foreach i of numlist 1995 2000 2005 2008 2009 2010 2011{ 
 	compute_X `i'
 	if `i'!=1995 {
-		append using exports.dta
+	append using exports.dta 
 	}
 	save exports.dta, replace
-	
+}	
 
+replace pays = "CHNNPR" if pays == "CHN.NPR"
+replace pays = "CHNPRO" if pays == "CHN.PRO"
+replace pays = "CHNDOM" if pays == "CHN.DOM"
+replace pays = "MEXNGM" if pays == "MEX.NGM"
+replace pays = "MEXGMF" if pays == "MEX.GMF"
 
-
-
-
-
-
+sort year , stable
+save exports.dta, replace
 
 ***************************************************************************************************
 * 3- On multiplie la matrice des pondérations transposée par la matrice des effets moyens, et on garde lae vecteur diagonale
@@ -136,47 +147,110 @@ capture program drop outdegree
 program outdegree
 
 clear
-use "$dir/Results mean_effect/mean_all.dta"
+use "$dir/mean_all2.dta"
 drop if cor=="yes"
 drop cor
+
 rename effect pays
 destring year, replace
 
 merge m:1 pays year using prod.dta
-rename pays effect
-rename prod prod_effec
+drop _merge
+sort cause  year  shock_type weight , stable
 
-replace prod = 0 if effec==cause
-bys (effect cause year shock shock_type weight) : egen somme_des_poids=total(prod)
+
+merge m:1 pays year using exports.dta
+drop _merge
+rename pays effect
+
+replace prod = 0 if effect==cause
+replace X = 0 if effect==cause
+
+bys cause  year  shock_type weight : egen somme_des_poids_P=total(prod)
+bys cause  year   shock_type weight : egen somme_des_poids_X=total(X)
+
+
+gen somme_des_poids=somme_des_poids_P 
+replace somme_des_poids=somme_des_poids_X if weight=="X"
+drop somme_des_poids_P somme_des_poids_X
+
+gen pond=prod/somme_des_poids
+replace pond=X/somme_des_poids if weight=="X"
+drop somme_des_poids
+
+
+gen outdegree=66*pond*shock
+
+collapse (sum) outdegree, by(cause  year  shock_type weight )
+rename cause pays
+sort year weight shock_type pays   , stable
+
+save "$dir\mean_all_outdegree.dta", replace
 
 end
 
 outdegree
-/*
+
+/* Fabrication de la base avec les indegrees et outdegrees   */
+
+use "$dir/mean_all_outdegree.dta"
+
+merge m:1 year weight shock_type pays using mean_all_indegree.dta
+drop _merge
+save "$dir\degrees.dta", replace
 
 
+/* outdegree pondéré */
+
+use "$dir\degrees.dta"
+sort pays  year  shock_type weight , stable
+
+merge m:1 pays  year  using prod.dta
+drop _merge
+sort pays  year  shock_type weight , stable
 
 
+merge m:1 pays  year   using exports.dta
+drop _merge
 
-import excel "C:\Users\L841580\Desktop\I-O-Stan\bases_stata\mean_effect/mean_p_X_`yrs'.xls", firstrow 
-mkmat shockARG1-shockZAF1, matrix(M)
-matrix OMt = Omega_`yrs''  /*matrice des pondérations oméga*/ 
-matrix OUTDEGREE=OMt*M
-mat outegree_`yrs'=vecdiag(OUTDEGREE)
+gen wgt_DEU=0
+replace wgt_DEU=prod if (weight=="Yt" & pays=="DEU")
+replace wgt_DEU=X if (weight=="X" & pays=="DEU")
 
-svmat OUTDEGREE
-save "C:\Users\L841580\Desktop\I-O-Stan\bases_stata/outdegree_`yrs'.dta", replace
+collapse (sum) wgt_DEU, by(year  shock_type weight )
+save "$dir\DEU.dta", replace
 
-export excel using "C:\Users\L841580\Desktop\I-O-Stan\bases_stata/outdegree_`yrs'.xls", firstrow(variables) 
+use "$dir\degrees.dta"
+merge m:1   year  shock_type weight using DEU.dta
+drop _merge
 
-end
+merge m:1 pays  year   using prod.dta
+drop _merge
+sort pays  year  shock_type weight , stable
 
-foreach i of numlist 1995 2000 2005 2008 2009 2010 2011{ 
-	clear matrix
-	set more off
-	create_y `i'
-	omega `i'
-	outdegree `i'
+
+merge m:1 pays  year  using exports.dta
+drop _merge
+
+gen outdegree2=outdegree*wgt_DEU/prod if (weight=="Yt")
+replace outdegree2=outdegree*wgt_DEU/prod if (weight=="X")
+
+drop wgt_DEU
+
+global ZE "AUT BEL CYP DEU ESP EST FIN FRA GRC IRL ITA LTU LUX LVA MLT NLD PRT"
+
+gen dum_ZE=0
+local ZE "AUT BEL CYP DEU ESP EST FIN FRA GRC IRL ITA LTU LUX LVA MLT NLD PRT"
+foreach n of local ZE{
+	replace dum_ZE=1 if (pays=="`n'")
 }
+
+rename prod Yt
+save "$dir\degrees.dta", replace
+
+*gen `wgt'DEU = tot_`wgt'1 if k == "DEU"
+
+
+
 
 
