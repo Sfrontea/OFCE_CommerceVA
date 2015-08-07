@@ -780,10 +780,9 @@ end
 *This program runs a regression corresponding to the first equation we have : shock ijt = a * e(alpha ij indicator ij) * e(Bt * indicator t) * e(espilon ijt) with shock being the shock effect from the mean effect matrix, alpha ij being the bilateral relationship between two countries, Bt being an indicator for years, epsilon being the error term.
 capture program drop regress_effect
 program regress_effect
-	args v wgt cor
+	args v wgt
 * v -> p or w
 *wgt -> Yt or X
-* cor -> yes or no
 clear
 set more off
 set trace on 
@@ -791,17 +790,17 @@ use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_effect/mean
 
 keep if shock_type == "`v'"
 keep if weight == "`wgt'"
-keep if cor == "`cor'"
+
 
 gen bilateral = cause+"_"+effect
-gen type = shock_type+"_"+weight+"_"+cor
+gen type = shock_type+"_"+weight
 gen ln_shock = log(shock)
 drop if shock==0
 
 xi : reg ln_shock i.bilateral i.year
 estimates store reg1
 
-outreg2 using /Users/sandrafronteau/Documents/Stage_OFCE/Stata/results/result_`v'_`wgt'_`cor'.xls, replace label 
+outreg2 using /Users/sandrafronteau/Documents/Stage_OFCE/Stata/results/result_`v'_`wgt'.xls, replace label 
 testparm _Iyear_*, equal
 
 set trace off
@@ -820,12 +819,14 @@ set more off
 set trace on 
 use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_effect/mean_all.dta"
 
+drop if cor == "yes"
+drop cor
 
 gen ln_shock = log(shock)
 
-gen type_cause = cause+"_"+shock_type+"_"+weight+"_"+cor
+gen type_cause = cause+"_"+shock_type+"_"+weight
 
-gen type_effect = effect+"_"+shock_type+"_"+weight+"_"+cor
+gen type_effect = effect+"_"+shock_type+"_"+weight
 
 gen region = ""
 global eurozone "AUT BEL DEU CYP ESP EST FIN FRA GRC IRL ITA LTU LUX LVA MLT NLD PRT SVK SVN"
@@ -872,9 +873,154 @@ xi i.type_cause i.type_effect i.yearregion
 reg ln_shock _Itype_caus_2-_Itype_caus_4 _Itype_caus_13-_Itype_effe_536 _Iyearregio_2-_Iyearregio_35
 
 
-outreg2 using /Users/sandrafronteau/Documents/Stage_OFCE/Stata/results/result_with_region.xls, replace label 
+outreg2 using /Users/sandrafronteau/Documents/Stage_OFCE/Stata/results/result_2.xls, replace label 
 
 testparm _Iyearregio_*, equal
+
+set more on
+set trace off
+
+end
+
+capture program drop regress_effect_3
+program regress_effect_3
+
+clear all
+set maxvar 30000
+set matsize 11000
+set more off
+set trace on 
+use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_effect/mean_all.dta"
+
+drop if cor == "yes"
+drop cor
+
+gen ln_shock = log(shock)
+
+gen type_cause = cause+"_"+shock_type+"_"+weight
+
+gen type_effect = effect+"_"+shock_type+"_"+weight
+
+gen region = ""
+global EU3 "AUT BEL BGR CHE CYP CZE DEU DNK ESP EST FIN FRA GBR GRC HRV HUN IRL ISL ITA LTU LUX LVA MLT NLD NOR POL PRT ROU SVK SVN SWE"
+global ASIA "BRN CHN CHNDOM CHNNPR CHNPRO HKG IDN JPN KHM KOR MYS PHL SGP THA TWN VNM"
+global NAFTA "CAN MEX MEXGMF MEXNGM USA"
+global ROW "ARG AUS BRA CHL COL CRI IND ISR NZL ROW RUS SAU TUN TUR ZAF"
+
+foreach i of global ROW{
+	foreach j of global ROW{
+		replace region = "ROW" if cause == "`i'" & effect == "`j'"
+	}
+}
+
+set more off
+foreach m of global EU3 {
+	foreach n of global EU3 {
+		replace region = "EU+3" if cause == "`m'" & effect =="`n'"
+	}
+}
+
+
+foreach k of global ASIA{
+	foreach l of global ASIA{
+		replace region = "ASIA" if cause == "`k'" & effect == "`l'"
+	}
+}
+
+set more off
+foreach i of global NAFTA{
+	foreach j of global NAFTA{
+		replace region = "NAFTA" if cause == "`i'" & effect == "`j'"
+	}
+}
+
+
+set more off
+foreach i of global EU3{
+	foreach j of global ASIA{
+		replace region = "EU+3_ASIA" if cause == "`i'" & effect == "`j'"
+		replace region = "EU+3_ASIA" if cause == "`j'" & effect == "`i'"
+	}
+}
+
+set more off
+foreach i of global EU3{
+	foreach j of global NAFTA{
+		replace region = "EU+3_NAFTA" if cause == "`i'" & effect == "`j'"
+		replace region = "EU+3_NAFTA" if cause == "`j'" & effect == "`i'"
+	}
+}
+
+
+
+set more off
+foreach i of global EU3{
+	foreach j of global ROW{
+		replace region = "EU+3_ROW" if cause == "`i'" & effect == "`j'"
+		replace region = "EU+3_ROW" if cause == "`j'" & effect == "`i'"
+	}
+}
+
+set more off
+foreach i of global ASIA{
+	foreach j of global NAFTA{
+		replace region = "ASIA_NAFTA" if cause == "`i'" & effect == "`j'"
+		replace region = "ASIA_NAFTA" if cause == "`j'" & effect == "`i'"
+	}
+}
+
+
+set more off
+foreach i of global ASIA{
+	foreach j of global ROW{
+		replace region = "ASIA_ROW" if cause == "`i'" & effect == "`j'"
+		replace region = "ASIA_ROW" if cause == "`j'" & effect == "`i'"
+	}
+}
+
+
+set more off
+foreach i of global NAFTA{
+	foreach j of global ROW{
+		replace region = "NAFTA_ROW" if cause == "`i'" & effect == "`j'"
+		replace region = "NAFTA_ROW" if cause == "`j'" & effect == "`i'"
+	}
+}
+
+*/
+
+replace region = "no" if region == ""
+
+gen yearregion = region+"_"+year
+
+drop if shock==0
+
+*Stata set _Itype_caus_1 = ARG_p_X_no, _Itype_effe_1 = ARG_p_X_no, _Iyearregio_1 = ASIA_1995 as reference dummies (alphabetical logic)
+
+set more off
+
+xi i.type_cause i.type_effect i.yearregion
+
+
+*xi, noomit i.type_cause i.type_effect i.yearregion
+*reg ln_shock _Itype_caus_2-_Itype_effe_268 _Iyearregio_2-_Iyearregio_70, noconstant
+
+
+save "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/reg2.dta", replace
+
+set more off
+reg ln_shock _Itype_caus_2-_Iyearregio_42 _Iyearregio_44-_Iyearregio_56 _Iyearregio_58-_Iyearregio_70
+
+*reg ln_shock _Itype_caus_2-_Itype_caus_4 _Itype_caus_13-_Itype_effe_12 _Itype_effe_17-_Itype_effe_536 _Iyearregio_2-_Iyearregio_56 _Iyearregio_58-_Iyearregio_70
+
+
+*set more off
+*xi, noomit : reg ln_shock i.type_cause i.type_effect i.yearregion, noconstant
+
+
+outreg2 using /Users/sandrafronteau/Documents/Stage_OFCE/Stata/results/result_3.xls, replace label 
+
+*testparm _Iyearregio_*, equal
 
 set more on
 set trace off
@@ -886,12 +1032,12 @@ end
 *---------------------------------------------------------------------------------------------------
 capture program drop draw_graph
 program draw_graph
-	args v wgt cor
-	*with v = p or w, wgt = Yt or X, cor = no or yes
+	args v wgt
+	*with v = p or w, wgt = Yt or X
 clear
 set more off
 
-regress_effect `v' `wgt' `cor'
+regress_effect `v' `wgt'
 
 *Once finished :
 *gen a variable coeff of coefficients (take from e(b) )
@@ -972,13 +1118,16 @@ replace `i' = exp(`i') * 100
 replace coeff = 100 if year == 1995
 }
 
-save "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/graph1.dta"
+save "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/graph1.dta"
+
+clear
+use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/graph1.dta"
 
 graph twoway connected coeff upperbound lowerbound year, xlabel(1995(2)2011) ///
  title("Evolution of integration 1995-2011") subtitle("Price shock, production weight, noncorrected") ///
 ytitle(index) xtitle(year) mcolor(red none none) lcolor(red black black) lpattern(solid dash dash)
 
-graph save Graph "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/results/graph_evolution_8.gph", replace
+graph save Graph "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/results/graph_evolution_9.gph", replace
 
 end
 
@@ -1319,16 +1468,17 @@ graph_degree_2
 
 global v "p w"
 global wgt "X Yt"
-global cor "no yes"
 foreach i of global v{
 	foreach j of global wgt{
-		foreach k of global cor{
-			regress_effect `i' `j' `k'
+			regress_effect `i' `j'
 		}
 	}
 }
 
-draw_graph p Yt no
+regress_effect_2
+regress_effect_3
+
+draw_graph p Yt
 
 draw_graph_2
 
