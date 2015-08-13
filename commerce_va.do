@@ -512,10 +512,119 @@ set more on
 
 end
 
+*-------------------------------------------------------------------------------
+*DEVALUATION OF THE EURO
+*-------------------------------------------------------------------------------
+*What happens when the euro is devaluated? To know that, we do a shock of 1 on all countries but the eurozone.
+capture program drop shock_deval
+program shock_deval
+	args shk
+
+set matsize 7000
+set more off
+clear
+use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/csv.dta"
+
+global country "ARG AUS AUT BEL BGR BRA BRN CAN CHE CHL CHN CHNDOM CHNNPR CHNPRO COL CRI CYP CZE DEU DNK ESP EST FIN FRA GBR GRC HKG HRV HUN IDN IND IRL ISL ISR ITA JPN KHM KOR LTU LUX LVA MEX MEXGMF MEXNGM MLT MYS NLD NOR NZL PHL POL PRT ROU ROW RUS SAU SGP SVK SVN SWE THA TUN TUR TWN USA VNM ZAF"
+
+local eurozone "AUT BEL CYP DEU ESP EST FIN FRA GRC IRL ITA LTU LUX LVA MLT NLD PRT SVK SVN"
+local noneuro "ARG AUS BGR BRA BRN CAN CHE CHL CHN CHNDOM CHNNPR CHNPRO COL CRI CZE DNK GBR HKG HRV HUN UDN UND ISL ISR JPN KHM KOR MEX MEXGMF MEXNGM MYS NOR NZL PHL POL ROU ROW RUS SAU SGP SWE THA TUN TUR TWN USA VNM ZAF"
+
+foreach i of local noneuro{
+replace p_shock = `shk' if c == "`i'"
+}
+
+*I extract vector p_shock from database with mkmat
+mkmat p_shock
+matrix p_shockt=p_shock'
+*The transpose of p_shock will be necessary for further computations
+*Must compute L1 for 2011 before going on
+*Multiplying the transpose of vector shock `v'_shockt by L1 to get the impact of a shock on the output price vector
+matrix P = p_shockt * L1
+
+end
+
+capture program drop create_y
+program create_y
+	args yrs
+clear
+use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/OECD_`yrs'_OUT.dta"
+mkmat arg_c01t05agr-zaf_c95pvh, matrix(Y)
+matrix Yt = Y'
+end
+
+capture program drop compute_mean
+program compute_mean
+	args wgt
+set matsize 7000
+set more off
+clear
+use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/csv.dta"
+matrix Yt = Y'
+svmat Yt
+*svmat X
+
+*I decide whether I use the production or export or value-added vector as weight modifying the argument "wgt" : Yt or X or VAt
+*Compute the vector of mean effects :
+matrix Pt= P'
+svmat Pt
+generate Bt = Pt1* `wgt'
+bys c : egen tot_`wgt' = total(`wgt')
+generate sector_shock = Bt/tot_`wgt'
+bys c : egen shock = total(sector_shock)
+
+set more off
+local country2 "ARG AUS AUT BEL BGR BRA BRN CAN CHE CHL COL CRI CYP CZE DEU DNK ESP EST FIN FRA GBR GRC HKG HRV HUN IDN IND IRL ISL ISR ITA JPN KHM KOR LTU LUX LVA MLT MYS NLD NOR NZL PHL POL PRT ROU ROW RUS SAU SGP SVK SVN SWE THA TUN TUR TWN USA VNM ZAF"
+local sector6 "C10T14 C15T16 C17T19 C20 C21T22 C23 C24 C25 C26 C27 C28 C29 C30T33X C31 C34 C35 C36T37 C40T41 C45 C50T52 C55 C60T63 C64 C65T67 C70 C71 C72 C73T74 C75 C80 C85 C90T93 C95"
+foreach i of local country2 {
+	foreach j of local sector6 {
+		drop if (c == "`i'" & s == "`j'")
+	}
+}
+
+local sector7 "C45 C50T52 C55 C60T63 C64 C65T67 C70 C71 C72 C73T74 C75 C80 C85 C90T93 C95"
+foreach j of local sector7 {
+	drop if (c == "CHN" & s == "`j'")
+}
+
+set more off
+local sector8 "C10T14 C15T16 C17T19 C20 C21T22 C23 C24 C25 C26 C27 C28 C29 C30T33X C31 C34 C35 C36T37"
+local country3 "CHNDOM CHNNPR"
+foreach i of local country3 {
+	foreach j of local sector8 {
+		drop if (c == "`i'" & s == "`j'")
+	}
+} 
+
+local sector9 "C15T16 C17T19 C20 C21T22 C23 C24 C25 C26 C27 C28 C29 C30T33X C31 C34 C35 C36T37"
+foreach j of local sector9 {
+	drop if (c == "CHNPRO" & s == "`j'")
+}
+
+local sector10 "C10T14 C40T41 C45 C50T52 C55 C60T63 C64 C65T67 C70 C71 C72 C73T74 C75 C80 C85 C90T93 C95"
+foreach j of local sector10 {
+	drop if (c == "MEX" & s == "`j'")
+}
+
+set more off
+local sector11 "C17T19 C20 C21T22 C23 C24 C25 C26 C27 C28 C29 C30T33X C31 C34 C35 C36T37"
+local country4 "MEXGMF MEXNGM"
+foreach i of local country4 {
+	foreach j of local sector11 {
+	drop if (c == "`i'" & s == "`j'")
+	}
+}
+
+mkmat tot_`wgt'
+mkmat shock
+
+*Vector shock`cty' contains the mean effects of a shock on prices (coming from the country `cty') on overall prices for each country
+
+end
 *--------------------------------------------------------------------------------
 *LIST ALL PROGRAMS AND RUN THEM
 *--------------------------------------------------------------------------------
-
+/*
 clear
 set more off
 database_csv
@@ -527,7 +636,7 @@ foreach i of numlist 2009 2010 2011{
 	}
 }
 
-/*
+
 clear matrix
 set more off
 database_csv
@@ -539,6 +648,11 @@ foreach i of numlist 1995 2000 2005{
 		table_mean `i' `j' 4 w
 	}
 }
+
+compute_leontief 2011
+shock_deval 1
+create_y 2011
+compute_mean Yt
 
 */
 

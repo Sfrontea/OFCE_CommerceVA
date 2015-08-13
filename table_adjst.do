@@ -777,7 +777,12 @@ end
 *---------------------------------------------------------------------------------------
 *REGRESSION TO BETTER UNDERSTAND THE RELATIONSHIP BETWEEN YEARS AND SHOCK EFFECT
 *---------------------------------------------------------------------------------------
+
+*-------------------------------------------------------------------------------
+*REGRESSION 1
+*-------------------------------------------------------------------------------
 *This program runs a regression corresponding to the first equation we have : shock ijt = a * e(alpha ij indicator ij) * e(Bt * indicator t) * e(espilon ijt) with shock being the shock effect from the mean effect matrix, alpha ij being the bilateral relationship between two countries, Bt being an indicator for years, epsilon being the error term.
+*We run this regression for each type of matrix
 capture program drop regress_effect
 program regress_effect
 	args v wgt
@@ -812,9 +817,19 @@ testparm _Iyear_*, equal
 set trace off
 
 end
-
-*This program runs a regression corresponding to the second equation we have : shock ijt = a * e(alpha i indicator i) * e(alpha j indicator j) * e(Bt r * indicator t r) * e(espilon ijt) with shock being the shock effect from the mean effect matrix, alpha i being the country from which the shock appears, alpha j being the country that receives the shock,  Bt r being an indicator for years and region, epsilon being the error term.
-*There are 5 regions : the eurozone, the rest of the EU, the region that embraces the relationships between the eurozone and the rest of the EU, the region "rest of the world", and "no", the relationships between Europe and the rest of the world;
+*-------------------------------------------------------------------------------
+*REGRESSION 2
+*-------------------------------------------------------------------------------
+/*
+This program runs a regression corresponding to the following equation : shock ijt = a * e(alpha i indicator i) * e(alpha j indicator j) *e(g indicator g)* e(Bt r * indicator t r) * e(espilon ijt) with shock being the shock effect from the mean effect matrix, alpha i being the country from which the shock appears, alpha j being the country that receives the shock,
+g the type of matrix,  Bt being an indicator for years and r for region, epsilon being the error term. We have one interacted variable : Bt x r
+There are 5 regions : the eurozone, the rest of the EU, the region that embraces the relationships between the eurozone and the rest of the EU, the region "rest of the world", and "no", the relationships between Europe and the rest of the world;
+Stata sets a reference category for each indicator :
+i.cause           _Icause_1-67        (_Icause_2 for cause==AUS omitted)
+i.effect          _Ieffect_1-67       (_Ieffect_6 for effect==BRA omitted)
+i.matrix          _Imatrix_1-4        (_Imatrix_1 for matrix==p_X omitted)
+i.yearregion      _Iyearregio_1-35    (_Iyearregio_15 for yea~n==no_1995 omitted)
+*/
 capture program drop regress_effect_2
 program regress_effect_2
 
@@ -822,7 +837,6 @@ clear all
 set maxvar 30000
 set matsize 11000
 set more off
-set trace on 
 use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_effect/mean_all.dta"
 
 drop if cause == effect
@@ -895,14 +909,24 @@ outreg2 using /Users/sandrafronteau/Documents/Stage_OFCE/Stata/results/result_2.
 testparm _Iyearregio_*, equal
 
 set more on
-set trace off
 
 end
 
-
+*-------------------------------------------------------------------------------
+*REGRESSION 3
+*-------------------------------------------------------------------------------
 capture program drop regress_effect_3
 program regress_effect_3
-
+/*
+This program runs a regression corresponding to the following equation : shock ijt = a * e(alpha i indicator i) * e(alpha j indicator j) *e(g indicator g)* e(Bt r * indicator t r) * e(espilon ijt) with shock being the shock effect from the mean effect matrix, alpha i being the country from which the shock appears, alpha j being the country that receives the shock,
+g the type of matrix,  Bt being an indicator for years and r for region, epsilon being the error term. We have one interacted variable : Bt x r
+There are 10 regions : ASIA, EU, NAFTA, ROW, EU_ASIA, EU_NAFTA, ASIA_ROW, EU_ROW, ASIA_NAFTA, NAFTA_ROW
+We set a reference category for each indicator :
+i.cause          cause==AUS omitted
+i.effect         effect==BRA omitted
+i.matrix         p_X
+i.yearregion    EU_ROW_1995, NAFTA_ROW_1995, ROW_1995
+*/
 clear all
 set maxvar 30000
 set matsize 11000
@@ -1053,8 +1077,320 @@ outreg2 using /Users/sandrafronteau/Documents/Stage_OFCE/Stata/results/result_3.
 set more on
 end
 
+*-------------------------------------------------------------------------------
+*REGRESSION 4
+*-------------------------------------------------------------------------------
+/*
+This program runs a regression corresponding to this equation : shock ijt = a * e(alpha i indicator i) * e(g indicator g) * e(alpha j indicator j) * e(alpha ig indicator ig)
+* e(alpha jg indicator jg) * e(Bt indicator Bt) * e(r indicator r) * e(Bt r * indicator t r) * e(espilon ijt) with shock being the shock effect from the mean effect matrix, alpha i being the country from which the shock appears, alpha j being the country that receives the shock, g is the type of matrix.
+Bt being an indicator for years and r an indicator for region, epsilon being the error term.We have three interacted variables : alpha i x g , alpha j x g, Bt x r.
+There are 10 regions : ASIA_ASIA, EU_EU, NAFTA_NAFTA, ROW_ROW, ASIA_EU, ASIA_NAFTA, ASIA_ROW, EU_NAFTA, EU_ROW, NAFTA_ROW
+We set one reference indicator for each category :
+For alpha i : ARG
+For alpha j : BRA
+For g : p_X (matrix of price shock and export weights
+For Bt : 1995
+For r : ASIA_ROW
+Stata omits those categories for collinearity:
+causexmatrix ZAF-wX, ZAF-wYt
+region 7, 9, 10 (EU_ROW, NAFTA_ROW, ROW_ROW)
+*/
+capture program drop regress_effect_4
+program regress_effect_4
+
+*Create pays_region.dta
+clear
+set matsize 11000, perm
+set more off
+
+global country "ARG AUS AUT BEL BGR BRA BRN CAN CHE CHL CHN CHNDOM CHNNPR CHNPRO COL CRI CYP CZE DEU DNK ESP EST FIN FRA GBR GRC HKG HRV HUN IDN IND IRL ISL ISR ITA JPN KHM KOR LTU LUX LVA MEX MEXGMF MEXNGM MLT MYS NLD NOR NZL PHL POL PRT ROU ROW RUS SAU SGP SVK SVN SWE THA TUN TUR TWN USA VNM ZAF"
+
+generate pays = ""
+local num_pays 0
+foreach i of global country {
+	foreach j of numlist 1/1 {
+		local new = _N + 1
+		set obs `new'
+		local ligne = `j' + 1 *`num_pays'
+		replace pays = "`i'" in `ligne'
+	}
+	local num_pays = `num_pays'+1
+}
+
+local EU "AUT BEL BGR CYP CZE DEU DNK ESP EST FIN FRA GBR GRC HRV HUN IRL ITA LTU LUX LVA MLT NLD POL PRT ROU SVK SVN SWE"
+local NAFTA "CAN MEX MEXGMF MEXNGM USA"
+local ASIA "BRN CHN CHNDOM CHNNPR CHNPRO HKG IDN JPN KHM KOR MYS PHL SGP THA TWN VNM"
+local ROW "ARG AUS BRA CHE CHL COL CRI IND ISL ISR NOR NZL ROW RUS SAU TUN TUR ZAF"
+
+generate region = ""
+foreach i of local EU{
+replace region = "EU" if pays == "`i'"
+}
+foreach j of local NAFTA{
+replace region = "NAFTA" if pays == "`j'"
+}
+foreach k of local ASIA{
+replace region = "ASIA" if pays == "`k'"
+}
+foreach l of local ROW{
+replace region = "ROW" if pays == "`l'"
+}
+
+save "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/pays_regions.dta", replace
+
+*Do the regression
+
+clear
+set more off
+use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_effect/mean_all.dta"
+*Withdraw the corrected or not criteria
+drop if cor =="yes"
+drop cor
+*Withdraw self-effects
+drop if cause==effect
+*Take the log of shock
+generate ln_shock=ln(shock)
+*Create a variable type of matrix
+generate matrix= shock_type+weight
+*Prepare to merge
+rename cause pays
+*From a .dta where we created regions
+merge m:1 pays using "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/pays_regions.dta"
+drop _merge
+rename region region_cause
+rename pays cause
+rename effect pays
+merge m:1 pays using "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/pays_regions.dta"
+drop _merge
+rename region region_effect
+rename pays effect
+generate region = region_cause + "_" + region_effect if region_cause <= region_effect
+replace region  = region_effect + "_" + region_cause if region_cause >= region_effect
+generate region_year=region+"_"+year
+destring year, replace
+generate cause_matrix = cause+matrix
+generate effect_matrix=effect+matrix
+encode cause, generate (ncause)
+encode effect, generate (neffect)
+encode matrix, generate (nmatrix)
+encode  cause_matrix, generate (ncause_matrix)
+encode  effect_matrix, generate (neffect_matrix)
+encode region, generate (nregion)
+encode region_year, generate (nregion_year)
+
+set more off
+regress ln_shock  i.ncause##i.nmatrix ib2.neffect##i.nmatrix ib4.nregion##i.year
+
+estimates store reg4
+outreg2 using /Users/sandrafronteau/Documents/Stage_OFCE/Stata/results/result_4.xls, replace label
+/*
+You have to read the results in a different way. Indeed, when we tell Stata to use interacted variable like i.ncause##i.nmatrix for example, Stata decomposes the coefficients and creates an indicator for
+cause, an indicator for matrix and an indicator for cause and matrix. Thus, when we want to understand the result coefficients for region x year, we have to know that the coefficients
+for years correspond in fact to the reference category region of ASIA_ROW. Coefficients for other regions are the difference from the reference coefficients of ASIA_ROW. 
+To plot the graph, we should therefore compute coeff of region + coeff of ASIA_ROW to get the coefficient we are interested in. The indicator "region" is a fixed effect (it changes the levels only)
+But we are interested in the impact of time on shocks. The indicator "years" corresponds to the reference category, ASIA_ROW. The constant corresponds to the mean of the situation of reference, it is the value
+when all indicators = 0.
+*/
+
+/*
+testparm i.nregion#year, equal
+
+*Same as first line:
+testparm 1o.nregion#1995b.year 1.nregion#2000.year 1.nregion#2005.year 1.nregion#2008.year 1.nregion#2009.year 1.nregion#2010.year 1.nregion#2011.year ///
+2o.nregion#1995b.year 2.nregion#2000.year 2.nregion#2005.year 2.nregion#2008.year 2.nregion#2009.year 2.nregion#2010.year 2.nregion#2011.year ///
+3o.nregion#1995b.year 3.nregion#2000.year 3.nregion#2005.year 3.nregion#2008.year 3.nregion#2009.year 3.nregion#2010.year 3.nregion#2011.year ///
+5o.nregion#1995b.year 5.nregion#2000.year 5.nregion#2005.year 5.nregion#2008.year 5.nregion#2009.year 5.nregion#2010.year 5.nregion#2011.year 6o.nregion#1995b.year 6.nregion#2000.year 6.nregion#2005.year 6.nregion#2008.year 6.nregion#2009.year 6.nregion#2010.year 6.nregion#2011.year ///
+7o.nregion#1995b.year 7.nregion#2000.year 7.nregion#2005.year 7.nregion#2008.year 7.nregion#2009.year 7.nregion#2010.year 7.nregion#2011.year 8o.nregion#1995b.year 8.nregion#2000.year 8.nregion#2005.year 8.nregion#2008.year 8.nregion#2009.year 8.nregion#2010.year 8.nregion#2011.year ///9o.nregion#1995b.year 9.nregion#2000.year 9.nregion#2005.year 9.nregion#2008.year 9.nregion#2009.year 9.nregion#2010.year 9.nregion#2011.year 10o.nregion#1995b.year 10.nregion#2000.year 10.nregion#2005.year 10.nregion#2008.year 10.nregion#2009.year 10.nregion#2010.year 10.nregion#2011.year, equal
+
+testparm 2000.year 2005.year 2008.year 2009.year 2010.year 2011.year 1o.nregion#1995b.year 1.nregion#2000.year 1.nregion#2005.year 1.nregion#2008.year 1.nregion#2009.year 1.nregion#2010.year 1.nregion#2011.year ///
+2o.nregion#1995b.year 2.nregion#2000.year 2.nregion#2005.year 2.nregion#2008.year 2.nregion#2009.year 2.nregion#2010.year 2.nregion#2011.year ///
+3o.nregion#1995b.year 3.nregion#2000.year 3.nregion#2005.year 3.nregion#2008.year 3.nregion#2009.year 3.nregion#2010.year 3.nregion#2011.year ///
+5o.nregion#1995b.year 5.nregion#2000.year 5.nregion#2005.year 5.nregion#2008.year 5.nregion#2009.year 5.nregion#2010.year 5.nregion#2011.year 6o.nregion#1995b.year 6.nregion#2000.year 6.nregion#2005.year 6.nregion#2008.year 6.nregion#2009.year 6.nregion#2010.year 6.nregion#2011.year ///
+7o.nregion#1995b.year 7.nregion#2000.year 7.nregion#2005.year 7.nregion#2008.year 7.nregion#2009.year 7.nregion#2010.year 7.nregion#2011.year 8o.nregion#1995b.year 8.nregion#2000.year 8.nregion#2005.year 8.nregion#2008.year 8.nregion#2009.year 8.nregion#2010.year 8.nregion#2011.year ///9o.nregion#1995b.year 9.nregion#2000.year 9.nregion#2005.year 9.nregion#2008.year 9.nregion#2009.year 9.nregion#2010.year 9.nregion#2011.year 10o.nregion#1995b.year 10.nregion#2000.year 10.nregion#2005.year 10.nregion#2008.year 10.nregion#2009.year 10.nregion#2010.year 10.nregion#2011.year, equal
+
+*Test for the equality of coefficients of all regions in 2000: 
+
+testparm 1.nregion#2000.year 2.nregion#2000.year 3.nregion#2000.year 4.nregion#2000.year 5.nregion#2000.year 6.nregion#2000.year 7.nregion#2000.year 8.nregion#2000.year ///9.nregion#2000.year 10.nregion#2000.year, equal
+
+*Result: there are significantly different at a 95% confidence interval
+
+
+testparm 5.nregion#2009.year 8.nregion#2009.year, equal
+
+
+*Are the coefficients for regions in 2000 significantly different?
+
+forvalues i=1/10{
+	forvalues j=1/10{
+		test `i'.nregion#2000.year=`j'.nregion#2000.year
+	}
+}
+
+*We cannot reject the hypothesis that coefficients for all regions with region 1 (ASIA_ASIA) in 2000 are equal at a 95% confidence interval.
+
+*Are the coefficients for regions in 2008 and 2009 significantly different? Apart from ASIA_ROW, ASIA_EU, EU_NAFTA,ROW_ROW that are away from the mass of curves?
+
+local var1 "1 3 5 7 8 9"
+
+foreach i of local var1{
+	foreach j of local var1{
+		test `i'.nregion#2008.year=`j'.nregion#2008.year
+	}
+}
+	
+local var1 "1 3 5 7 8 9"
+
+foreach i of local var1{
+	foreach j of local var1{
+		test `i'.nregion#2010.year=`j'.nregion#2010.year
+	}
+}
+*Some are not significantly different from others but some are significanty different.
+*/
+
+end
+*-------------------------------------------------------------------------------
+*REGRESSION 5
+*-------------------------------------------------------------------------------
+/*
+This program runs a regression corresponding to this equation : shock ijt = a * e(alpha i indicator i) * e(g indicator g) * e(alpha j indicator j) * e(alpha ig indicator ig)
+* e(alpha jg indicator jg) * e(Bt indicator Bt) * e(r indicator r) * e(Bt r * indicator t r) * e(espilon ijt) with shock being the shock effect from the mean effect matrix, alpha i being the country from which the shock appears, alpha j being the country that receives the shock, g is the type of matrix.
+Bt being an indicator for years and r an indicator for region, epsilon being the error term.We have three interacted variables : alpha i x g , alpha j x g, Bt x r.
+There are 6 regions : the eurozone, the rest of the EU, the rest of the world, eurozone-rest of the EU, eurozone-rest of the world, rest of the EU-rest of the world.
+We set one reference category for each indicator :
+For alpha i : ARG
+For alpha j : BRA
+For g : p_X (matrix of price shock and export weights
+For Bt : 1995
+For r : Rest of EU-ROW
+Stata omits those categories for collinearity:
+causexmatrix ZAF-wX, ZAF-wYt
+region 3 and 6 (EUROZONE_ROW, ROW_ROW)
+*/
+
+capture program drop regress_effect_5
+program regress_effect_5
+
+clear
+set matsize 11000
+set more off
+
+global country "ARG AUS AUT BEL BGR BRA BRN CAN CHE CHL CHN CHNDOM CHNNPR CHNPRO COL CRI CYP CZE DEU DNK ESP EST FIN FRA GBR GRC HKG HRV HUN IDN IND IRL ISL ISR ITA JPN KHM KOR LTU LUX LVA MEX MEXGMF MEXNGM MLT MYS NLD NOR NZL PHL POL PRT ROU ROW RUS SAU SGP SVK SVN SWE THA TUN TUR TWN USA VNM ZAF"
+
+generate pays = ""
+local num_pays 0
+foreach i of global country {
+	foreach j of numlist 1/1 {
+		local new = _N + 1
+		set obs `new'
+		local ligne = `j' + 1 *`num_pays'
+		replace pays = "`i'" in `ligne'
+	}
+	local num_pays = `num_pays'+1
+}
+
+local EUROZONE "AUT BEL CYP DEU ESP EST FIN FRA GRC IRL ITA LTU LUX LVA MLT NLD PRT SVK SVN"
+local REST_OF_EU "BGR CZE DNK GBR HRV HUN POL ROU SWE"
+local ROW "ARG AUS BRA BRN CAN CHE CHN CHNDOM CHNNPR CHNPRO CHL COL CRI HKG IDN IND ISL ISR JPN KHM KOR MEX MEXGMF MEXNGM MYS NOR NZL PHL ROW RUS SAU SGP THA TUN TUR TWN USA VNM ZAF"
+
+generate region = ""
+foreach i of local EUROZONE{
+replace region = "EUROZONE" if pays == "`i'"
+}
+foreach j of local REST_OF_EU{
+replace region = "REST_OF_EU" if pays == "`j'"
+}
+foreach k of local ROW{
+replace region = "ROW" if pays == "`k'"
+}
+
+save "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/pays_regions_2.dta", replace
+
+clear
+set more off
+use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_effect/mean_all.dta"
+*Withdraw the corrected or not criteria
+drop if cor =="yes"
+drop cor
+*Withdraw self-effects
+drop if cause==effect
+*Take the log of shock
+generate ln_shock=ln(shock)
+*Create a variable type of matrix
+generate matrix= shock_type+weight
+*Prepare to merge
+rename cause pays
+
+*From a .dta where we created regions
+merge m:1 pays using "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/pays_regions_2.dta"
+drop _merge
+rename region region_cause
+rename pays cause
+rename effect pays
+merge m:1 pays using "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/pays_regions_2.dta"
+drop _merge
+rename region region_effect
+rename pays effect
+generate region = region_cause + "_" + region_effect if region_cause <= region_effect
+replace region  = region_effect + "_" + region_cause if region_cause >= region_effect
+generate region_year=region+"_"+year
+destring year, replace
+generate cause_matrix = cause+matrix
+generate effect_matrix=effect+matrix
+encode cause, generate (ncause)
+encode effect, generate (neffect)
+encode matrix, generate (nmatrix)
+encode  cause_matrix, generate (ncause_matrix)
+encode  effect_matrix, generate (neffect_matrix)
+encode region, generate (nregion)
+encode region_year, generate (nregion_year)
+
+set more off
+regress ln_shock  i.ncause##i.nmatrix ib2.neffect##i.nmatrix ib5.nregion##i.year
+
+estimates store reg5
+outreg2 using /Users/sandrafronteau/Documents/Stage_OFCE/Stata/results/result_5.xls, replace label
+
+/*
+You have to read the results in a different way. Indeed, when we tell Stata to use interacted variable like i.ncause##i.nmatrix for example, Stata decomposes the coefficients and creates an indicator for
+cause, an indicator for matrix and an indicator for cause and matrix. Thus, when we want to understand the result coefficients for region x year, we have to know that the coefficients
+for years correspond in fact to the reference category region of REST_OF_EU_ROW. Coefficients for other regions are the difference from the reference coefficients of ASIA_ROW. 
+To plot the graph, we should therefore compute coeff of region + coeff of REST_OF_EU_ROW to get the coefficient we are interested in. The indicator "region" is a fixed effect (it changes the levels only)
+But we are interested in the impact of time on shocks. The indicator "years" corresponds to the reference category, REST_OF_EU_ROW. The constant corresponds to the mean of the situation of reference, it is the value
+when all indicators = 0.
+*/
+/*
+*According to the graph_5 we have the intuition that the coefficients for ROW_ROW are significantly different from those of other regions. But other region's curves seem very embedded.
+*We test if the coefficients for those regions are significantly different.
+
+
+testparm 1o.nregion#1995b.year 1.nregion#2000.year 1.nregion#2005.year 1.nregion#2008.year 1.nregion#2009.year 1.nregion#2010.year 1.nregion#2011.year ///
+2o.nregion#1995b.year 2.nregion#2000.year 2.nregion#2005.year 2.nregion#2008.year 2.nregion#2009.year 2.nregion#2010.year 2.nregion#2011.year 3o.nregion#1995b.year 3.nregion#2000.year 3.nregion#2005.year 3.nregion#2008.year 3.nregion#2009.year 3.nregion#2010.year 3.nregion#2011.year 4o.nregion#1995b.year 4.nregion#2000.year 4.nregion#2005.year 4.nregion#2008.year 4.nregion#2009.year 4.nregion#2010.year 4.nregion#2011.year ///
+5b.nregion#1995b.year 5b.nregion#2000o.year 5b.nregion#2005o.year 5b.nregion#2008o.year 5b.nregion#2009o.year 5b.nregion#2010o.year 5b.nregion#2011o.year, equal
+
+forvalues i=1/6{
+	forvalues j=1/6{
+		test `i'.nregion#2000.year=`j'.nregion#2000.year
+	}
+}
+
+*Testing the equality of coefficients between EUROZONE_EUROZONE and EUROZONE_REST_OF_EU:
+local yrs "1995 2000 2005 2008 2009 2010 2011"
+foreach i of local yrs{
+	test 1.nregion#`i'.year=2.nregion#`i'.year
+}
+*We can reject the hypothesis that they are equal at a 95% confidence interval in 2005 only.
+*Testing the equality of coefficients between EUROZONE_EUROZONE and REST_OF_EU_REST_OF_EU:
+local yrs "1995 2000 2005 2008 2009 2010 2011"
+foreach i of local yrs{
+	test 1.nregion#`i'.year=4.nregion#`i'.year
+}
+*Cannot reject the hypothesis for any year.
+*/
+
+end
 *---------------------------------------------------------------------------------------------------
-*PLOT A GRAPH WITH YEARS ON AXIS AND COEFFICIENTS FROM REGRESSION ON ORDINATE FOR THE FIRST EQUATION
+*PLOT A GRAPH WITH YEARS ON AXIS AND COEFFICIENTS FROM REGRESSION ON ORDINATE FROM REGRESSION 1
 *---------------------------------------------------------------------------------------------------
 capture program drop draw_graph
 program draw_graph
@@ -1158,7 +1494,7 @@ graph save Graph "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/results/graph
 end
 
 *----------------------------------------------------------------------------------------------------
-*PLOT A GRAPH WITH YEARS ON AXIS AND COEFFICIENTS FROM REGRESSION ON ORDINATE FOR THE SECOND EQUATION
+*PLOT A GRAPH WITH YEARS ON AXIS AND COEFFICIENTS FROM REGRESSION ON ORDINATE FROM REGRESSION 2
 *----------------------------------------------------------------------------------------------------
 capture program drop draw_graph_2
 program draw_graph_2
@@ -1376,9 +1712,8 @@ graph save Graph "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/results/graph
 end
 
 *-------------------------------------------------------------------------------------------------------------------------------
-*PLOT A GRAPH WITH YEARS ON AXIS AND COEFFICIENTS FROM REGRESSION ON ORDINATE FOR THE SECOND EQUATION BUT WITH DIFFERENT REGIONS
+*PLOT A GRAPH WITH YEARS ON AXIS AND COEFFICIENTS FROM REGRESSION ON ORDINATE FROM REGRESSION 3
 *-------------------------------------------------------------------------------------------------------------------------------
-
 capture program drop draw_graph_3
 program draw_graph_3
 
@@ -1766,14 +2101,458 @@ clear
 set more off
 use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/coeff_region_2.dta"
 
-graph twoway connected ASIA1 EU31 NAFTA1 ROW1 upperbound11 lowerbound11 upperbound41 lowerbound41 upperbound81 lowerbound81 upperbound101 lowerbound101 year, xlabel(1995(2)2011) ///
- title("Evolution of density 1995-2011") mcolor(red green yellow blue none none none none none none none none) ///
-lcolor(red green yellow blue dark dark dark dark dark dark dark dark) lpattern(solid solid solid solid dot dot dot dot dot dot dot dot) ///
- legend(order(1 2 3 4)) ytitle(index) xtitle(year)
+graph twoway connected ASIA1 ASIA_ROW1 EU31 NAFTA1 ROW1 upperbound11 lowerbound11 upperbound41 lowerbound41 upperbound81 lowerbound81 upperbound101 lowerbound101 year, xlabel(1995(2)2011) ///
+ title("Evolution of density 1995-2011") mcolor(red orange green yellow blue none none none none none none none none) ///
+lcolor(red orange green yellow blue dark dark dark dark dark dark dark dark) lpattern(solid solid solid solid solid dot dot dot dot dot dot dot dot) ///
+ legend(order(1 2 3 4 5)) ytitle(index) xtitle(year)
  
 graph save Graph "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/results/graph_3_1.gph", replace
 
 end
+
+*-------------------------------------------------------------------------------------------------------------------------------
+*PLOT A GRAPH WITH YEARS ON AXIS AND COEFFICIENTS FROM REGRESSION ON ORDINATE FROM REGRESSION 4
+*-------------------------------------------------------------------------------------------------------------------------------
+capture program drop draw_graph_4
+program draw_graph_4
+
+clear
+set more off
+
+*create a matrix of coefficients from results
+matrix coeff = e(b)'
+svmat coeff
+rename coeff1 coeff
+
+*generate a variable of standard deviations
+matrix V = e(V)
+matrix SE2 = vecdiag(V)
+matrix SE = SE2'
+matmap SE se, m(sqrt(@))
+svmat se
+rename se1 se
+
+*create a string variable used as a tool to build the dataset
+set more off
+gen category = ""
+local num_pays 0
+forvalues i = 1/762{
+	foreach j of numlist 1/1 {
+		local ligne = `j' + 1 *`num_pays'
+		replace category = "`i'" in `ligne'
+	}
+	local num_pays = `num_pays'+1
+}
+
+destring category, replace
+
+drop if category == 762
+keep if category > 684
+
+tostring category, replace
+
+*create a variable region
+local region "ASIA_ROW ASIA_ASIA ASIA_EU ASIA_NAFTA ASIA_ROW2 EU_EU EU_NAFTA EU_ROW NAFTA_NAFTA NAFTA_ROW ROW_ROW"
+generate region = ""
+local num_reg 0
+foreach i of local region {
+	foreach j of numlist 1/7 {
+		local ligne = `j' + 7*`num_reg'
+		replace region = "`i'" in `ligne'
+	}
+	local num_reg = `num_reg'+1
+}
+
+save "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/coefficients_4.dta", replace
+
+*create a variable of coefficient for each region as well as a variable of standard deviation
+clear
+set more off
+
+use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/coefficients_4.dta"
+keep if region == "ASIA_ROW"
+generate ASIA_ROW = coeff
+generate seASIA_ROW = se
+mkmat ASIA_ROW
+mkmat seASIA_ROW
+
+clear
+use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/coefficients_4.dta"
+
+keep if region == "ASIA_ASIA"
+generate ASIA_ASIA2 = coeff if region == "ASIA_ASIA"
+generate seASIA_ASIA = se
+mkmat ASIA_ASIA2
+mkmat seASIA_ASIA
+
+clear
+use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/coefficients_4.dta"
+
+keep if region == "ASIA_EU"
+generate ASIA_EU2 = coeff if region == "ASIA_EU"
+generate seASIA_EU = se
+mkmat ASIA_EU2
+mkmat seASIA_EU
+
+clear
+use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/coefficients_4.dta"
+
+keep if region == "ASIA_NAFTA"
+generate ASIA_NAFTA2 = coeff
+generate seASIA_NAFTA = se
+mkmat ASIA_NAFTA2
+mkmat seASIA_NAFTA
+
+clear
+use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/coefficients_4.dta"
+keep if region == "ASIA_ROW2"
+generate ASIA_ROW2 = coeff
+generate seASIA_ROW2 = se
+mkmat ASIA_ROW2
+mkmat seASIA_ROW2
+
+clear
+use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/coefficients_4.dta"
+keep if region == "EU_EU"
+generate EU_EU2 = coeff
+generate seEU_EU = se
+mkmat EU_EU2
+mkmat seEU_EU
+
+
+clear
+use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/coefficients_4.dta"
+keep if region == "EU_NAFTA"
+generate EU_NAFTA2 = coeff
+generate seEU_NAFTA = se
+mkmat EU_NAFTA2
+mkmat seEU_NAFTA
+
+clear
+use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/coefficients_4.dta"
+keep if region == "EU_ROW"
+generate EU_ROW2 = coeff
+generate seEU_ROW = se
+mkmat EU_ROW2
+mkmat seEU_ROW
+
+clear
+use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/coefficients_4.dta"
+keep if region == "NAFTA_NAFTA"
+generate NAFTA_NAFTA2 = coeff
+generate seNAFTA_NAFTA = se
+mkmat NAFTA_NAFTA2
+mkmat seNAFTA_NAFTA
+
+clear
+use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/coefficients_4.dta"
+keep if region == "NAFTA_ROW"
+generate NAFTA_ROW2 = coeff
+generate seNAFTA_ROW = se
+mkmat NAFTA_ROW2
+mkmat seNAFTA_ROW
+
+clear
+use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/coefficients_4.dta"
+keep if region == "ROW_ROW"
+generate ROW_ROW2 = coeff
+generate seROW_ROW = se
+mkmat ROW_ROW2
+mkmat seROW_ROW
+
+clear
+svmat ASIA_ROW
+svmat ASIA_ASIA2
+svmat ASIA_EU2
+svmat ASIA_NAFTA2
+svmat ASIA_ROW2
+svmat EU_EU2
+svmat EU_NAFTA2
+svmat EU_ROW2
+svmat NAFTA_NAFTA2
+svmat NAFTA_ROW2
+svmat ROW_ROW2
+svmat seASIA_ROW
+svmat seASIA_ASIA
+svmat seASIA_EU
+svmat seASIA_NAFTA
+svmat seASIA_ROW2
+svmat seEU_EU
+svmat seEU_NAFTA
+svmat seEU_ROW
+svmat seNAFTA_NAFTA
+svmat seNAFTA_ROW
+svmat seROW_ROW
+
+rename ASIA_ROW1 ASIA_ROW
+
+*withdraw the "1" at the end of the name of each variable of standard deviation
+local region2 "ASIA_ROW ASIA_ASIA ASIA_EU ASIA_NAFTA ASIA_ROW2 EU_EU EU_NAFTA EU_ROW NAFTA_NAFTA NAFTA_ROW ROW_ROW"
+foreach i of local region2{
+	rename se`i'1 se`i'
+}
+
+*withdraw the "1" at the end of the name of each variable of coefficients
+local region "ASIA_ASIA ASIA_EU ASIA_NAFTA EU_EU EU_NAFTA EU_ROW NAFTA_NAFTA NAFTA_ROW ROW_ROW"
+foreach i of local region{
+	generate `i' = ASIA_ROW + `i'21
+	drop `i'21
+}
+
+*create upperbounds and lowerbounds to build a confidence interval for each region if needed
+local region "ASIA_ROW ASIA_ASIA ASIA_EU ASIA_NAFTA EU_EU EU_NAFTA EU_ROW NAFTA_NAFTA NAFTA_ROW ROW_ROW"
+foreach i of local region{
+generate upperbound`i' = `i' + se`i'*1.96
+generate lowerbound`i' = `i' - se`i'*1.96
+drop se`i'
+}
+
+drop ASIA_ROW2
+drop seASIA_ROW2
+
+*create a variable for years
+local yrs "1995 2000 2005 2008 2009 2010 2011"
+generate year = ""
+local num_pays 0
+foreach i of local yrs {
+	foreach j of numlist 1/1 {
+		local ligne = `j' + 1 *`num_pays'
+		replace year = "`i'" in `ligne'
+	}
+	local num_pays = `num_pays'+1
+}
+
+destring year, replace
+
+*create an index
+local var "ASIA_ROW ASIA_ASIA ASIA_EU ASIA_NAFTA EU_EU EU_NAFTA EU_ROW NAFTA_NAFTA NAFTA_ROW ROW_ROW upperboundASIA_ROW lowerboundASIA_ROW upperboundASIA_ASIA lowerboundASIA_ASIA upperboundASIA_EU lowerboundASIA_EU upperboundASIA_NAFTA lowerboundASIA_NAFTA upperboundEU_EU lowerboundEU_EU upperboundEU_NAFTA lowerboundEU_NAFTA upperboundEU_ROW lowerboundEU_ROW upperboundNAFTA_NAFTA lowerboundNAFTA_NAFTA upperboundNAFTA_ROW lowerboundNAFTA_ROW upperboundROW_ROW lowerboundROW_ROW"
+foreach i of local var{
+replace `i' = exp(`i') * 100
+}
+
+*the reference of 100 is set at year = 1995
+local var "ASIA_ROW ASIA_ASIA ASIA_EU ASIA_NAFTA EU_EU EU_NAFTA EU_ROW NAFTA_NAFTA NAFTA_ROW ROW_ROW upperboundASIA_ROW lowerboundASIA_ROW upperboundASIA_ASIA lowerboundASIA_ASIA upperboundASIA_EU lowerboundASIA_EU upperboundASIA_NAFTA lowerboundASIA_NAFTA upperboundEU_EU lowerboundEU_EU upperboundEU_NAFTA lowerboundEU_NAFTA upperboundEU_ROW lowerboundEU_ROW upperboundNAFTA_NAFTA lowerboundNAFTA_NAFTA upperboundNAFTA_ROW lowerboundNAFTA_ROW upperboundROW_ROW lowerboundROW_ROW"
+foreach i of local var2{
+replace `i' = 100 if year == 1995
+}
+
+save "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/coeff_region_4.dta", replace
+
+
+clear
+set more off
+use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/coeff_region_4.dta"
+
+*plot the graph (without the confidence interval otherwise too many specifications and impossible to read the graph properly)
+graph twoway connected ASIA_ROW ASIA_ASIA ASIA_EU ASIA_NAFTA EU_EU EU_NAFTA EU_ROW NAFTA_NAFTA NAFTA_ROW ROW_ROW ///
+ year, xlabel(1995(2)2011) ///
+ title("Evolution of integration 1995-2011") mcolor(red green yellow blue orange lavender pink emerald gold olive) ///
+lcolor(red green yellow blue orange lavender pink emerald gold olive dark) lpattern(solid solid solid solid solid solid solid solid solid solid) ///
+ legend(order(1 2 3 4 5 6 7 8 9 10)) ytitle(index) xtitle(year)
+
+graph save Graph "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/results/graph_4_3.gph", replace
+
+end
+*-------------------------------------------------------------------------------------------------------------------------------
+*PLOT A GRAPH WITH YEARS ON AXIS AND COEFFICIENTS FROM REGRESSION ON ORDINATE FROM REGRESSION 5
+*-------------------------------------------------------------------------------------------------------------------------------
+capture program drop draw_graph_5
+program draw_graph_5
+
+*plot graph
+clear
+set more off
+
+*create a matrix of coefficients from results
+matrix coeff = e(b)'
+svmat coeff
+rename coeff1 coeff
+
+*generate a variable of standard deviations
+matrix V = e(V)
+matrix SE2 = vecdiag(V)
+matrix SE = SE2'
+matmap SE se, m(sqrt(@))
+svmat se
+rename se1 se
+
+
+*create a string variable used as a tool to build the dataset
+set more off
+gen category = ""
+local num_pays 0
+forvalues i = 1/730{
+	foreach j of numlist 1/1 {
+		local ligne = `j' + 1 *`num_pays'
+		replace category = "`i'" in `ligne'
+	}
+	local num_pays = `num_pays'+1
+}
+
+destring category, replace
+drop if category == 730
+keep if category > 680
+tostring category, replace
+
+*create a variable region
+local region "REST_OF_EU_ROW EUROZONE_EUROZONE EUROZONE_REST_OF_EU EUROZONE_ROW REST_OF_EU_REST_OF_EU REST_OF_EU_ROW2 ROW_ROW"
+generate region = ""
+local num_reg 0
+foreach i of local region {
+	foreach j of numlist 1/7 {
+		local ligne = `j' + 7*`num_reg'
+		replace region = "`i'" in `ligne'
+	}
+	local num_reg = `num_reg'+1
+}
+
+save "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/coefficients_22.dta", replace
+
+*create a variable of coefficient for each region as well as a variable of standard deviation
+clear
+set more off
+
+use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/coefficients_22.dta"
+keep if region == "REST_OF_EU_ROW"
+generate REST_OF_EU_ROW = coeff
+generate seREST_OF_EU_ROW = se
+mkmat REST_OF_EU_ROW
+mkmat seREST_OF_EU_ROW
+
+clear
+use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/coefficients_22.dta"
+
+keep if region == "EUROZONE_EUROZONE"
+generate EUROZONE_EUROZONE2 = coeff if region == "EUROZONE_EUROZONE"
+generate seEUROZONE_EUROZONE = se
+mkmat EUROZONE_EUROZONE2
+mkmat seEUROZONE_EUROZONE
+
+clear
+use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/coefficients_22.dta"
+
+keep if region == "EUROZONE_REST_OF_EU"
+generate EUROZONE_REST_OF_EU2 = coeff if region == "EUROZONE_REST_OF_EU"
+generate seEUROZONE_REST_OF_EU = se
+mkmat EUROZONE_REST_OF_EU2
+mkmat seEUROZONE_REST_OF_EU
+
+clear
+use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/coefficients_22.dta"
+
+keep if region == "EUROZONE_ROW"
+generate EUROZONE_ROW2 = coeff
+generate seEUROZONE_ROW = se
+mkmat EUROZONE_ROW2
+mkmat seEUROZONE_ROW
+
+clear
+use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/coefficients_22.dta"
+keep if region == "REST_OF_EU_REST_OF_EU"
+generate REST_OF_EU_REST_OF_EU2 = coeff
+generate seREST_OF_EU_REST_OF_EU = se
+mkmat REST_OF_EU_REST_OF_EU2
+mkmat seREST_OF_EU_REST_OF_EU
+
+clear
+use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/coefficients_22.dta"
+keep if region == "REST_OF_EU_ROW2"
+generate REST_OF_EU_ROW22 = coeff
+generate seREST_OF_EU_ROW2 = se
+mkmat REST_OF_EU_ROW22
+mkmat seREST_OF_EU_ROW2
+
+
+clear
+use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/coefficients_22.dta"
+keep if region == "ROW_ROW"
+generate ROW_ROW2 = coeff
+generate seROW_ROW = se
+mkmat ROW_ROW2
+mkmat seROW_ROW
+
+clear
+svmat REST_OF_EU_ROW
+svmat EUROZONE_EUROZONE2
+svmat EUROZONE_REST_OF_EU2
+svmat EUROZONE_ROW2
+svmat REST_OF_EU_REST_OF_EU2
+svmat REST_OF_EU_ROW22
+svmat ROW_ROW2
+svmat seREST_OF_EU_ROW
+svmat seEUROZONE_EUROZONE
+svmat seEUROZONE_REST_OF_EU
+svmat seEUROZONE_ROW
+svmat seREST_OF_EU_REST_OF_EU
+svmat seREST_OF_EU_ROW2
+svmat seROW_ROW
+
+rename REST_OF_EU_ROW1 REST_OF_EU_ROW
+
+*withdraw the "1" at the end of the name of each variable of coefficients
+local region2 "EUROZONE_EUROZONE EUROZONE_REST_OF_EU EUROZONE_ROW REST_OF_EU_REST_OF_EU REST_OF_EU_ROW2 ROW_ROW"
+foreach i of local region2{
+	generate `i' = REST_OF_EU_ROW + `i'21
+	drop `i'21
+}
+
+*withdraw the "1" at the end of the name of each variable of standard deviation
+local region "REST_OF_EU_ROW EUROZONE_EUROZONE EUROZONE_REST_OF_EU EUROZONE_ROW REST_OF_EU_REST_OF_EU REST_OF_EU_ROW2 ROW_ROW"
+foreach i of local region{
+	rename se`i'1 se`i'
+}
+
+drop REST_OF_EU_ROW2
+drop seREST_OF_EU_ROW2
+
+
+*create upperbounds and lowerbounds to build a confidence interval for each region if needed
+local region "REST_OF_EU_ROW EUROZONE_EUROZONE EUROZONE_REST_OF_EU EUROZONE_ROW REST_OF_EU_REST_OF_EU ROW_ROW"
+foreach i of local region{
+generate upperbound`i' = `i' + se`i'*1.96
+generate lowerbound`i' = `i' - se`i'*1.96
+drop se`i'
+}
+
+*create a variable for years
+local yrs "1995 2000 2005 2008 2009 2010 2011"
+generate year = ""
+local num_pays 0
+foreach i of local yrs {
+	foreach j of numlist 1/1 {
+		local ligne = `j' + 1 *`num_pays'
+		replace year = "`i'" in `ligne'
+	}
+	local num_pays = `num_pays'+1
+}
+
+destring year, replace
+
+*create an index
+local var "REST_OF_EU_ROW EUROZONE_EUROZONE EUROZONE_REST_OF_EU EUROZONE_ROW REST_OF_EU_REST_OF_EU ROW_ROW upperboundREST_OF_EU_ROW lowerboundREST_OF_EU_ROW upperboundEUROZONE_EUROZONE lowerboundEUROZONE_EUROZONE upperboundEUROZONE_REST_OF_EU lowerboundEUROZONE_REST_OF_EU upperboundEUROZONE_ROW lowerboundEUROZONE_ROW upperboundREST_OF_EU_REST_OF_EU lowerboundREST_OF_EU_REST_OF_EU upperboundROW_ROW lowerboundROW_ROW"
+foreach i of local var{
+replace `i' = exp(`i') * 100
+}
+
+save "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/coeff_region_22.dta", replace
+
+
+clear
+set more off
+use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/coeff_region_22.dta"
+
+*plot the graph (without the confidence interval otherwise too many specifications and impossible to read the graph properly)
+ graph twoway connected REST_OF_EU_ROW EUROZONE_EUROZONE EUROZONE_REST_OF_EU EUROZONE_ROW REST_OF_EU_REST_OF_EU ROW_ROW upperboundREST_OF_EU_ROW lowerboundREST_OF_EU_ROW upperboundEUROZONE_EUROZONE lowerboundEUROZONE_EUROZONE upperboundEUROZONE_REST_OF_EU lowerboundEUROZONE_REST_OF_EU upperboundEUROZONE_ROW lowerboundEUROZONE_ROW upperboundREST_OF_EU_REST_OF_EU lowerboundREST_OF_EU_REST_OF_EU upperboundROW_ROW lowerboundROW_ROW  ///
+ year, xlabel(1995(2)2011) ylabel(100(20)220) ///
+ title("Evolution of integration 1995-2011") mcolor(red green yellow blue orange pink none none none none none none none none none none none none) ///
+lcolor(red green yellow blue orange pink dark dark dark dark dark dark dark dark dark dark dark dark) lpattern(solid solid solid solid solid solid dot dot dot dot dot dot dot dot dot dot dot dot) ///
+ legend(order(1 2 3 4 5 6)) ytitle(index) xtitle(year)
+
+graph save Graph "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/results/graph_5_1.gph", replace
+
+end
+
+
 *-------------------------------------------------------------------------------
 *LIST ALL PROGRAMS AND RUN THEM
 *-------------------------------------------------------------------------------
@@ -1900,13 +2679,19 @@ foreach i of global v{
 
 regress_effect_2
 regress_effect_3
+regress_effect_4
+regress_effect_5
 
+*(graph of regression 1:)
 draw_graph p Yt
-
 draw_graph_2
+draw_graph_3
+draw_graph_4
+draw_graph_5
 
 */
 
+regress_effect_5
 
 set more on
 log close
