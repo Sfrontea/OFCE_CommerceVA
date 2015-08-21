@@ -154,7 +154,7 @@ program base_wage
 									
 	order AUS-TUN, alphabetic after (A)
 
-*We reshape the database as a column-vector with a variable REM for wages and OUT for output
+*We reshape the database as a column-vector with a variable WAGE for wages and OUT for output
 
 	foreach i of global country {
 			rename `i' country_`i'
@@ -345,7 +345,7 @@ end
 *----------------------------------------------------------------------------------
 *CREATION OF A VECTOR CONTAINING MEAN EFFECTS OF A SHOCK ON PRICES FOR EACH COUNTRY
 *----------------------------------------------------------------------------------
-*Creation of the vector Y is required before table_adjst if not done already
+*Creation of the vector Y is required before table_adjst
 capture program drop create_y
 program create_y
 args yrs
@@ -489,8 +489,10 @@ set trace on
 set more off
 global country "ARG AUS AUT BEL BGR BRA BRN CAN CHE CHL CHN CHNDOM CHNNPR CHNPRO COL CRI CYP CZE DEU DNK ESP EST FIN FRA GBR GRC HKG HRV HUN IDN IND IRL ISL ISR ITA JPN KHM KOR LTU LUX LVA MEX MEXGMF MEXNGM MLT MYS NLD NOR NZL PHL POL PRT ROU ROW RUS SAU SGP SVK SVN SWE THA TUN TUR TWN USA VNM ZAF"
 foreach i of global country {
-	vector_shock_`v' `shk' `i'
+	vector_shock_p `shk' `i'
+	*vector_shock_w `shk' `i'
 	shock_price `i' `v'
+	create_y
 	compute_X `yrs'
 	compute_VA `yrs'
 	compute_mean `i' `wgt'
@@ -518,7 +520,8 @@ end
 *What happens when the euro is devaluated? To know that, we do a shock of 1 on all countries but the eurozone.
 capture program drop shock_deval
 program shock_deval
-	args shk
+	args shk zone
+*shk = 1, zone = noneuro (for a shock corresponding to a devaluation of the euro), china or eastern
 
 set matsize 7000
 set more off
@@ -528,9 +531,11 @@ use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/csv.dta"
 global country "ARG AUS AUT BEL BGR BRA BRN CAN CHE CHL CHN CHNDOM CHNNPR CHNPRO COL CRI CYP CZE DEU DNK ESP EST FIN FRA GBR GRC HKG HRV HUN IDN IND IRL ISL ISR ITA JPN KHM KOR LTU LUX LVA MEX MEXGMF MEXNGM MLT MYS NLD NOR NZL PHL POL PRT ROU ROW RUS SAU SGP SVK SVN SWE THA TUN TUR TWN USA VNM ZAF"
 
 local eurozone "AUT BEL CYP DEU ESP EST FIN FRA GRC IRL ITA LTU LUX LVA MLT NLD PRT SVK SVN"
-local noneuro "ARG AUS BGR BRA BRN CAN CHE CHL CHN CHNDOM CHNNPR CHNPRO COL CRI CZE DNK GBR HKG HRV HUN UDN UND ISL ISR JPN KHM KOR MEX MEXGMF MEXNGM MYS NOR NZL PHL POL ROU ROW RUS SAU SGP SWE THA TUN TUR TWN USA VNM ZAF"
+local noneuro "ARG AUS BGR BRA BRN CAN CHE CHL CHN CHNDOM CHNNPR CHNPRO COL CRI CZE DNK GBR HKG HRV HUN IDN IND ISL ISR JPN KHM KOR MEX MEXGMF MEXNGM MYS NOR NZL PHL POL ROU ROW RUS SAU SGP SWE THA TUN TUR TWN USA VNM ZAF"
+local china "CHN CHNDOM CHNNPR CHNPRO"
+local eastern "BGR CZE HRV HUN POL ROU "
 
-foreach i of local noneuro{
+foreach i of local `zone'{
 replace p_shock = `shk' if c == "`i'"
 }
 
@@ -553,25 +558,69 @@ mkmat arg_c01t05agr-zaf_c95pvh, matrix(Y)
 matrix Yt = Y'
 end
 
-capture program drop compute_mean
-program compute_mean
-	args wgt
+*Creation of the vector of export X
+capture program drop compute_X
+program compute_X
+	args yrs
+
+use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/OECD`yrs'.dta", clear
+
+global country2 "arg aus aut bel bgr bra brn can che chl chn chn.npr chn.pro chn.dom col cri cyp cze deu dnk esp est fin fra gbr grc hkg hrv hun idn ind irl isl isr ita jpn khm kor ltu lux lva mex mex.ngm mex.gmf mlt mys nld nor nzl phl pol prt rou row rus sau sgp svk svn swe tha tun tur twn usa vnm zaf"
+
+generate pays = strlower(substr(v1,1,strpos(v1,"_")-1))
+drop if pays==""
+
+egen utilisations = rowtotal(aus_c01t05agr-disc)
+gen utilisations_dom = .
+
+foreach j of global country2 {
+	local i = "`j'"
+	if  ("`j'"=="chn.npr" | "`j'"=="chn.pro" |"`j'"=="chn.dom" ) {
+		local i = "chn" 
+	}
+	if  ("`j'"=="mex.ngm" | "`j'"=="mex.gmf") {
+			local i = "mex"
+	}
+	egen blouk = rowtotal(`i'*)
+	display "`i'" "`j'"
+	replace utilisations_dom = blouk if pays=="`j'"
+	codebook utilisations_dom if pays=="`j'"
+	drop blouk
+}
+generate X = utilisations - utilisations_dom
+	
+replace pays = strupper(pays)
+generate year = `yrs'
+
+keep year pays X
+mkmat X
+
+end
+
+capture program drop compute_mean_deval
+program compute_mean_deval
+	args yrs zone
 set matsize 7000
-set more off
 clear
+set more off
 use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/csv.dta"
-matrix Yt = Y'
 svmat Yt
-*svmat X
+svmat X
 
 *I decide whether I use the production or export or value-added vector as weight modifying the argument "wgt" : Yt or X or VAt
 *Compute the vector of mean effects :
 matrix Pt= P'
 svmat Pt
-generate Bt = Pt1* `wgt'
-bys c : egen tot_`wgt' = total(`wgt')
-generate sector_shock = Bt/tot_`wgt'
+generate Bt = Pt1* Yt
+bys c : egen tot_Yt = total(Yt)
+generate sector_shock = Bt/tot_Yt
 bys c : egen shock = total(sector_shock)
+
+generate Bt2 = Pt1* X
+bys c : egen tot_X = total(X)
+generate sector_shock2 = Bt2/tot_X
+bys c : egen shock2 = total(sector_shock2)
+
 
 set more off
 local country2 "ARG AUS AUT BEL BGR BRA BRN CAN CHE CHL COL CRI CYP CZE DEU DNK ESP EST FIN FRA GBR GRC HKG HRV HUN IDN IND IRL ISL ISR ITA JPN KHM KOR LTU LUX LVA MLT MYS NLD NOR NZL PHL POL PRT ROU ROW RUS SAU SGP SVK SVN SWE THA TUN TUR TWN USA VNM ZAF"
@@ -615,12 +664,34 @@ foreach i of local country4 {
 	}
 }
 
-mkmat tot_`wgt'
+mkmat tot_Yt
+mkmat tot_X
 mkmat shock
-
+mkmat shock2
 *Vector shock`cty' contains the mean effects of a shock on prices (coming from the country `cty') on overall prices for each country
 
+local noneuro "ARG AUS BGR BRA BRN CAN CHE CHL CHN CHNDOM CHNNPR CHNPRO COL CRI CZE DNK GBR HKG HRV HUN IDN IND ISL ISR JPN KHM KOR MEX MEXGMF MEXNGM MYS NOR NZL PHL POL ROU ROW RUS SAU SGP SWE THA TUN TUR TWN USA VNM ZAF"
+foreach i of local noneuro{
+drop if c == "`i'"
+}
+
+generate C = shock * tot_X
+egen prod_eu = total(tot_X)
+generate mean_per_country = C/prod_eu
+egen mean_eu = total(mean_per_country)
+gen ratio = shock/mean_eu
+
+generate C2 = shock2 * tot_X
+egen prod_eu2 = total(tot_X)
+generate mean_per_country2 = C2/prod_eu2
+egen mean_eu2 = total(mean_per_country2)
+gen ratio2 = shock2/mean_eu2
+
+save "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/results_deval_`yrs'_`zone'.dta", replace
+export excel using "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/results/results_deval_`yrs'_`zone'.xls", firstrow(variables) replace
+
 end
+
 *--------------------------------------------------------------------------------
 *LIST ALL PROGRAMS AND RUN THEM
 *--------------------------------------------------------------------------------
@@ -649,10 +720,10 @@ foreach i of numlist 1995 2000 2005{
 	}
 }
 
-compute_leontief 2011
-shock_deval 1
-create_y 2011
-compute_mean Yt
+shock deval 1 noneuro
+create_y
+compute_X
+compute_mean_deval 2011 noneuro
 
 */
 
