@@ -477,10 +477,12 @@ drop if cor=="yes"
 drop cor
 
 * We compute the vector of indegrees
-
+replace shock=0 if effect== cause
 collapse (sum) shock, by(effect shock_type-year) 
 rename shock indegree
-rename effect country
+rename effect pays
+sort year weight shock_type pays, stable
+destring year, replace
 
 save "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_all_indegree.dta", replace
 
@@ -561,9 +563,8 @@ generate X = utilisations - utilisations_dom
 	
 replace pays = strupper(pays)
 generate year = `yrs'
-
 keep year pays X
-*mkmat X
+collapse (sum) X, by (pays year)
 
 end
 
@@ -577,6 +578,16 @@ foreach i of numlist 1995 2000 2005 2008 2009 2010 2011{
 	}
 	save "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/exports.dta", replace
 }	
+
+replace pays = "CHNNPR" if pays == "CHN.NPR"
+replace pays = "CHNPRO" if pays == "CHN.PRO"
+replace pays = "CHNDOM" if pays == "CHN.DOM"
+replace pays = "MEXNGM" if pays == "MEX.NGM"
+replace pays = "MEXGMF" if pays == "MEX.GMF"
+ 
+sort year , stable
+save "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/exports.dta", replace
+ 
 
 end
 
@@ -594,12 +605,12 @@ drop cor
 rename effect pays
 destring year, replace
 
-merge m:1 pays year using prod.dta
+merge m:1 pays year using "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/prod.dta"
 drop _merge
 sort cause  year  shock_type weight , stable
 
 
-merge m:1 pays year using exports.dta
+merge m:1 pays year using "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/exports.dta"
 drop _merge
 rename pays effect
 
@@ -636,7 +647,7 @@ program data_degree
 
 use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_all_outdegree.dta"
 
-merge m:1 year weight shock_type pays using mean_all_indegree.dta
+merge m:1 year weight shock_type pays using "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_all_indegree.dta"
 drop _merge
 save "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/degrees.dta", replace
 
@@ -648,12 +659,12 @@ save "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/degrees.dta", r
 use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/degrees.dta"
 sort pays  year  shock_type weight , stable
 
-merge m:1 pays  year  using prod.dta
+merge m:1 pays  year  using "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/prod.dta"
 drop _merge
 sort pays  year  shock_type weight , stable
 
 
-merge m:1 pays  year   using exports.dta
+merge m:1 pays  year   using "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/exports.dta"
 drop _merge
 
 gen wgt_DEU=0
@@ -667,12 +678,12 @@ use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/degrees.dta"
 merge m:1   year  shock_type weight using DEU.dta
 drop _merge
 
-merge m:1 pays  year   using prod.dta
+merge m:1 pays  year   using "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/prod.dta"
 drop _merge
 sort pays  year  shock_type weight , stable
 
 
-merge m:1 pays  year  using exports.dta
+merge m:1 pays  year  using "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/exports.dta"
 drop _merge
 
 gen outdegree2=outdegree*wgt_DEU/prod if (weight=="Yt")
@@ -691,7 +702,7 @@ program graph_degree_1
 
 clear
 set more off
-use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_all_inou.dta"
+use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/degrees.dta"
 *-------------------------------------------------------------------------------
 * création dummy zone euro
 *-------------------------------------------------------------------------------
@@ -741,7 +752,7 @@ program graph_degree_2
 
 clear
 set more off
-use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_all_inou.dta"
+use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/degrees.dta"
 
 global ZE "AUT BEL CYP DEU ESP EST FIN FRA GRC IRL ITA LTU LUX LVA MLT NLD PRT"
 
