@@ -676,14 +676,14 @@ drop if c == "`i'"
 }
 
 generate C = shock * tot_X
-egen prod_eu = total(tot_X)
-generate mean_per_country = C/prod_eu
+egen x_eu = total(tot_X)
+generate mean_per_country = C/x_eu
 egen mean_eu = total(mean_per_country)
 gen ratio = shock/mean_eu
 
 generate C2 = shock2 * tot_X
-egen prod_eu2 = total(tot_X)
-generate mean_per_country2 = C2/prod_eu2
+egen x_eu2 = total(tot_X)
+generate mean_per_country2 = C2/x_eu2
 egen mean_eu2 = total(mean_per_country2)
 gen ratio2 = shock2/mean_eu2
 
@@ -720,9 +720,9 @@ foreach i of numlist 1995 2000 2005{
 	}
 }
 
-shock deval 1 noneuro
-create_y
-compute_X
+shock_deval 1 noneuro
+create_y 2011
+compute_X 2011
 compute_mean_deval 2011 noneuro
 
 */

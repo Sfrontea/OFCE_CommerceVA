@@ -642,6 +642,8 @@ save "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/degrees.dta", r
 
 
 /*weigthed outdegrees*/
+*Outdegrees are normalized using this formula: outdegree2=outdegree*wgt_DEU/prod with wgt_DEU being the weight in Germany using production or export and prod being
+*the production of the country we compute the outedegrees from.
 
 use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/degrees.dta"
 sort pays  year  shock_type weight , stable
@@ -2002,6 +2004,9 @@ draw_graph_3
 
 
 */
+
+regress_effect_2
+draw_graph_2
 
 set more on
 log close
