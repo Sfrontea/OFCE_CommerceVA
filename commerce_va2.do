@@ -4,10 +4,10 @@ set matsize 7000
 *set mem 700m if earlier version of stata (<stata 12)
 set more off
 
-*-------------------------------------------------------------------------------
-*TO USE ONLY IF table_adjst IS RUN SEPARATELY FROM table_mean
-*-------------------------------------------------------------------------------
-*Creation of the vector Y is required before table_adjst
+*----------------------------------------------------------------------------------------
+*TO USE ONLY IF table_adjst IS RUN SEPARATELY FROM table_mean (program in commerce_va.do)
+*----------------------------------------------------------------------------------------
+*Creation of the vector of production Y is required before table_adjst
 capture program drop create_y
 program create_y
 args yrs
@@ -16,34 +16,48 @@ use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/OECD_`yrs'_OUT.d
 mkmat arg_c01t05agr-zaf_c95pvh, matrix(Y)
 matrix Yt = Y'
 
-
 end
 
-*Creation of the vector X is required before table_adjst
+*Creation of the vector of export X is required before table_adjst
 capture program drop compute_X
 program compute_X
 	args yrs
-clear
-set matsize 7000
-set more off
-use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/OECD`yrs'.dta"
-drop arg_c01t05agr-zaf_c95pvh
-global country2 "arg aus aut bel bgr bra brn can che chl chn col cri cyp cze deu dnk esp est fin fra gbr grc hkg hrv hun idn ind irl isl isr ita jpn khm kor ltu lux lva mex mlt mys nld nor nzl phl pol prt rou row rus sau sgp svk svn swe tha tun tur twn usa vnm zaf"
-foreach i of global country2 {
-drop `i'_gfcf
-drop `i'_ggfc
-drop `i'_hc
-drop `i'_invnt
-drop `i'_npish
+
+use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/OECD`yrs'.dta", clear
+
+global country2 "arg aus aut bel bgr bra brn can che chl chn chn.npr chn.pro chn.dom col cri cyp cze deu dnk esp est fin fra gbr grc hkg hrv hun idn ind irl isl isr ita jpn khm kor ltu lux lva mex mex.ngm mex.gmf mlt mys nld nor nzl phl pol prt rou row rus sau sgp svk svn swe tha tun tur twn usa vnm zaf"
+
+generate pays = strlower(substr(v1,1,strpos(v1,"_")-1))
+drop if pays==""
+
+egen utilisations = rowtotal(aus_c01t05agr-disc)
+gen utilisations_dom = .
+
+foreach j of global country2 {
+	local i = "`j'"
+	if  ("`j'"=="chn.npr" | "`j'"=="chn.pro" |"`j'"=="chn.dom" ) {
+		local i = "chn" 
+	}
+	if  ("`j'"=="mex.ngm" | "`j'"=="mex.gmf") {
+			local i = "mex"
+	}
+	egen blouk = rowtotal(`i'*)
+	display "`i'" "`j'"
+	replace utilisations_dom = blouk if pays=="`j'"
+	codebook utilisations_dom if pays=="`j'"
+	drop blouk
 }
 
-drop if v1 == "VA.TAXSUB" | v1 == "OUT"
-egen X = rowtotal(arg_consabr-disc)
-mkmat X
+generate X = utilisations - utilisations_dom
+	
+replace pays = strupper(pays)
+generate year = `yrs'
+keep year pays X
+collapse (sum) X, by (pays year)
 
 end
 
-*Creation of the vector VA is required before table_adjst
+*Creation of the vector of value-added VA is required before table_adjst (even though we did not use it after all)
 capture program drop compute_VA
 program compute_VA
 	args yrs
@@ -53,7 +67,6 @@ keep if v1 == "VA.TAXSUB"
 drop v1
 mkmat arg_c01t05agr-zaf_c95pvh, matrix(VA)
 matrix VAt = VA'
-
 
 end
 
@@ -271,29 +284,43 @@ replace cor = "yes" if cor =="_cor"
 replace cor = "no" if cor ==""
 
 save "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_effect/mean_all.dta", replace
+/*
+It contains the columns : "cause" (which is i the country where the shock comes from), "effect" (which is j the country that receives the shock), "shock" (which is the value
+of the average effect of the shock coming from i to j), "shock_type" (which is the type of the shock : shock of price or shock of wage), "weight" (which is the weight used in 
+the computation of the weighted average of the effect of the shock : production or export), "year", and "cor" (which is whether the matrix is corrected from the size effect
+or not).
+*/
 
 end 
 
 *-------------------------------------------------------------------------------
 *COMPUTE A MEASURE OF DENSITY TO COMPARE MEAN_EFFECT MATRICES
 *-------------------------------------------------------------------------------
+*(This program was not used in the study after all.)
 capture program drop create_nw_p
 program create_nw_p
 	args wgt yrs cut
-*cut : 0.05 : 5% cut on self-loops
-*This program creates a network from existing matrices of mean effects of shocks and remove all effect that is lower than 5% of the self-loops (a self-loop accounts for the effects of a country i to country i, itself).
-*Also from effects it computes distances by taking the inverse.
+/*
+cut : 0.05 : 5% cut on self-loops
+This program creates a network from existing matrices of mean effects of shocks and remove all effect that is lower than 5% of the self-loops (a self-loop accounts for the effects of a country i to country i itself).
+From the value of the effects, it also computes distances by taking the inverse. We have to cut the elements of the matrix because otherwise when computing density we would
+get 1 (as the formula for density is "number of actual vertices in the graph/number of all potential vertices in the graph that could exist between all nodes")
+*/
 clear
 set more off
 use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_effect/mean_p_`wgt'_`yrs'.dta"
 
+*This takes the average of the self-loops (computing the trace of matrix W).
 mkmat shockARG1-shockZAF1, matrix(W)
 generate t=trace(W)
 generate t2=t/67
+*We multiply it by the cut. (-1 to obtain the effects in delta)
 generate t3=`cut'*(t2-1)
+*Convert into distance
 generate t4=1/t3
 mkmat t4
 
+*Convert into distance of all elements of the matrix 
 global country "ARG AUS AUT BEL BGR BRA BRN CAN CHE CHL CHN CHNDOM CHNNPR CHNPRO COL CRI CYP CZE DEU DNK ESP EST FIN FRA GBR GRC HKG HRV HUN IDN IND IRL ISL ISR ITA JPN KHM KOR LTU LUX LVA MEX MEXGMF MEXNGM MLT MYS NLD NOR NZL PHL POL PRT ROU ROW RUS SAU SGP SVK SVN SWE THA TUN TUR TWN USA VNM ZAF"
 foreach h of global country{
 	gen shock`h'2 = (1/shock`h'1)
@@ -301,53 +328,21 @@ foreach h of global country{
 	rename shock`h'2 shock`h'1
 }
 
+/*
+If the value of an effect of the shock is lower than a certain percentage of the mean of self-loops, we set it at 0. (As we work with distances, it must be greater than
+the percentage of self-loop expressed in distance.
+*/
+
 set more off
 global country "ARG AUS AUT BEL BGR BRA BRN CAN CHE CHL CHN CHNDOM CHNNPR CHNPRO COL CRI CYP CZE DEU DNK ESP EST FIN FRA GBR GRC HKG HRV HUN IDN IND IRL ISL ISR ITA JPN KHM KOR LTU LUX LVA MEX MEXGMF MEXNGM MLT MYS NLD NOR NZL PHL POL PRT ROU ROW RUS SAU SGP SVK SVN SWE THA TUN TUR TWN USA VNM ZAF"
 foreach c of global country{
 	replace shock`c'1 = 0 if shock`c'1 > t4
 }
-	
+
+*Creates a network named "ME_p_`wgt'_`yrs'" from the matrix (using nwcommands, the special add-on for networks in STATA)
 nwset shockARG1-shockZAF1, name(ME_p_`wgt'_`yrs') labs(ARG AUS AUT BEL BGR BRA BRN CAN CHE CHL CHN CHNDOM CHNNPR CHNPRO COL CRI CYP CZE DEU DNK ESP EST FIN FRA GBR GRC HKG HRV HUN IDN IND IRL ISL ISR ITA JPN KHM KOR LTU LUX LVA MEX MEXGMF MEXNGM MLT MYS NLD NOR NZL PHL POL PRT ROU ROW RUS SAU SGP SVK SVN SWE THA TUN TUR TWN USA VNM ZAF)
 
 end
-
-
-capture program drop create_nw_2
-program create_nw_2
-	args wgt yrs v _cor
-*This program is like create_nw_p except that there is no cut and you can use corrected from size matrices.
-clear
-set more off
-use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_effect/mean_`v'_`wgt'_`yrs'`_cor'.dta"
-
-svmat t4
-
-global country "ARG AUS AUT BEL BGR BRA BRN CAN CHE CHL CHN CHNDOM CHNNPR CHNPRO COL CRI CYP CZE DEU DNK ESP EST FIN FRA GBR GRC HKG HRV HUN IDN IND IRL ISL ISR ITA JPN KHM KOR LTU LUX LVA MEX MEXGMF MEXNGM MLT MYS NLD NOR NZL PHL POL PRT ROU ROW RUS SAU SGP SVK SVN SWE THA TUN TUR TWN USA VNM ZAF"
-foreach h of global country{
-	gen shock`h'2 = (1/shock`h'1)
-	drop shock`h'1
-	rename shock`h'2 shock`h'1
-}
-
-global country "ARG AUS AUT BEL BGR BRA BRN CAN CHE CHL CHN CHNDOM CHNNPR CHNPRO COL CRI CYP CZE DEU DNK ESP EST FIN FRA GBR GRC HKG HRV HUN IDN IND IRL ISL ISR ITA JPN KHM KOR LTU LUX LVA MEX MEXGMF MEXNGM MLT MYS NLD NOR NZL PHL POL PRT ROU ROW RUS SAU SGP SVK SVN SWE THA TUN TUR TWN USA VNM ZAF"
-foreach c of global country{
-	replace shock`c'1 = 0 if (shock`c'1 >=.)
-}
-
-set more off
-global country "ARG AUS AUT BEL BGR BRA BRN CAN CHE CHL CHN CHNDOM CHNNPR CHNPRO COL CRI CYP CZE DEU DNK ESP EST FIN FRA GBR GRC HKG HRV HUN IDN IND IRL ISL ISR ITA JPN KHM KOR LTU LUX LVA MEX MEXGMF MEXNGM MLT MYS NLD NOR NZL PHL POL PRT ROU ROW RUS SAU SGP SVK SVN SWE THA TUN TUR TWN USA VNM ZAF"
-foreach c of global country{
-	replace shock`c'1 = 0 if shock`c'1 > t4
-
-}
-
-
-nwset shockARG1-shockZAF1, name(ME_`v'_`wgt'_`yrs'`_cor') labs(ARG AUS AUT BEL BGR BRA BRN CAN CHE CHL CHN CHNDOM CHNNPR CHNPRO COL CRI CYP CZE DEU DNK ESP EST FIN FRA GBR GRC HKG HRV HUN IDN IND IRL ISL ISR ITA JPN KHM KOR LTU LUX LVA MEX MEXGMF MEXNGM MLT MYS NLD NOR NZL PHL POL PRT ROU ROW RUS SAU SGP SVK SVN SWE THA TUN TUR TWN USA VNM ZAF)
-
-nwsummarize ME_`v'_`wgt'_`yrs'`_cor'
-
-end
-
 
 capture program drop compute_density
 program compute_density
@@ -369,6 +364,12 @@ capture program drop prepare_gephi
 program prepare_gephi
 args v wgt yrs _cor
 
+/*
+Gephi is a software that draws graphs representing networks. It uses two separate databases, one for edges and one for nodes.
+This program transforms matrices of mean effects of a shock into two databases, one for edges and one for nodes, that are exported into excel spreadsheet to be imported in the
+software Gephi. 
+*/
+
 *Build a database for edges
 
 clear
@@ -383,6 +384,7 @@ clear
 set more off
 use "/Users/sandrafronteau/Documents/Stage_OFCE/Stata/data/ocde/mean_effect/mean_`v'_`wgt'_`yrs'`_cor'.dta"
 
+*To be visible on the graph, it is better if all elements of the matrix are artificially bigger. That is why we multiply all elements by 1000.
 global country "ARG AUS AUT BEL BGR BRA BRN CAN CHE CHL CHN CHNDOM CHNNPR CHNPRO COL CRI CYP CZE DEU DNK ESP EST FIN FRA GBR GRC HKG HRV HUN IDN IND IRL ISL ISR ITA JPN KHM KOR LTU LUX LVA MEX MEXGMF MEXNGM MLT MYS NLD NOR NZL PHL POL PRT ROU ROW RUS SAU SGP SVK SVN SWE THA TUN TUR TWN USA VNM ZAF"
 
 foreach i of global country{
@@ -390,7 +392,7 @@ gen shock`i'2 = shock`i'1*1000
 drop shock`i'1
 }
 
-
+*From the matrix, we create a network using nwcommands, the special add-on for networks in STATA.
 mkmat shockARG2-shockZAF2, matrix(W)
 nwset shockARG2-shockZAF2, name(ME_`v'_`wgt'_`yrs'`_cor') labs(ARG AUS AUT BEL BGR BRA BRN CAN CHE CHL CHN CHNDOM CHNNPR CHNPRO COL CRI CYP CZE DEU DNK ESP EST FIN FRA GBR GRC HKG HRV HUN IDN IND IRL ISL ISR ITA JPN KHM KOR LTU LUX LVA MEX MEXGMF MEXNGM MLT MYS NLD NOR NZL PHL POL PRT ROU ROW RUS SAU SGP SVK SVN SWE THA TUN TUR TWN USA VNM ZAF)
 
@@ -446,6 +448,8 @@ end
 capture program drop compute_corr
 program compute_corr
 	args v1 v2 wgt1 wgt2 yrs1 yrs2
+*Originally we use this program in order to know if matrices are strongly linked whether we use production or export weight. 
+*args example: v1=p, v2=p wgt1 = Yt, wgt2 = X, yrs1 = 2011, yrs2 = 2011
 clear
 set more off
 set matsize 7000
@@ -460,6 +464,8 @@ svmat `v1'_`wgt1'_`yrs1'
 svmat `v2'_`wgt2'_`yrs2'
 correlate `v1'_`wgt1'_`yrs1' `v2'_`wgt2'_`yrs2'
 
+*The result for our example is that matrices that contain mean effects of a shock of price are strongly close when using production and export weight.The correlation is 0.9977.
+
 end
 *-------------------------------------------------------------------------------
 *COMPUTE WEIGHTED INDEGREE AND OUTDEGREE OF NODES
@@ -467,7 +473,11 @@ end
 ***************************************************************************************************
 **************************We compute indegrees***********************************************
 ***************************************************************************************************
-
+/*
+Indegrees are the number of links that come from all nodes and are directed towards node 1. They are weighted because we take into account the "weights" associated, that is the distance between other nodes to node 1 for each indegree.
+A weight corresponds to the value of the mean effect of a shock coming from node i to node j.
+To compute indegrees of node 1, we sum the weights of all directed edges coming from all nodes to node 1.
+*/
 capture program drop indegree
 program indegree
 * We use mean effect non corrected matrices
@@ -490,8 +500,11 @@ end
 ***************************************************************************************************
 **************************We compute outdegrees***********************************************
 ***************************************************************************************************
-
-
+/*
+Outdegrees are the number of links that come from node 1 and are directed towards all other nodes. They are weighted because we take into account the "weight" associated, that is the distance between node 1 to the other node for each outdegree.
+A weight corresponds to the value of the mean effect of a shock coming from node 1 to node j.
+To compute outdegrees of node 1, we sum the weights of all directed edges coming from node 1 to all other nodes.
+*/
 ***************************************************************************************************
 * 1- Creation of table y of production: we create vector 1*67 of total production by country
 ***************************************************************************************************
@@ -514,6 +527,7 @@ end
 capture program drop append_Y
 program append_Y
 
+*We create a .dta that includes all vectors of production of all years.
 foreach i of numlist 1995 2000 2005 2008 2009 2010 2011{ 
 	compute_Y`i'
 	if `i'!=1995 {
@@ -570,7 +584,7 @@ end
 
 capture program drop append_X
 program append_X
-
+*We create a .dta that includes all vectors of export of all years
 foreach i of numlist 1995 2000 2005 2008 2009 2010 2011{ 
 	compute_X `i'
 	if `i'!=1995 {
