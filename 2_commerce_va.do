@@ -317,11 +317,13 @@ set more on
 
 end
 
-
+/*
+ERREUR DANS LA CONCECPTION DE CE PROGRAMME 
 *-------------------------------------------------------------------------------
 *DEVALUATION OF THE EURO
 *-------------------------------------------------------------------------------
 *What happens when the euro is devaluated? To know that, we do a shock of 1 on all countries but the eurozone.
+
 capture program drop shock_deval
 program shock_deval
 	args shk zone
@@ -448,7 +450,7 @@ save "H:\Agents\Cochard\Papier_chocCVA\Bases/results_deval_`yrs'_`zone'.dta", re
 export excel using "H:\Agents\Cochard\Papier_chocCVA\Bases/results_deval_`yrs'_`zone'.xls", firstrow(variables) replace
 
 end
-
+*/
 *--------------------------------------------------------------------------------
 *LIST ALL PROGRAMS AND RUN THEM
 *--------------------------------------------------------------------------------
