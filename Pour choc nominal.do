@@ -19,25 +19,28 @@ set more off
 capture program drop compute_leontief_chocnom
 program compute_leontief_chocnom
 	args yrs groupeduchoc
-*ex : compute_leontief_chocnom 2005 "chn chnnpr chnpro chndom"	
+*ex : compute_leontief_chocnom 2005 arg	
 *Create vector Y of output from troncated database
 clear
 *use "H:\Agents\Cochard\Papier_chocCVA\Bases/OECD_`yrs'_OUT.dta"
 if ("`c(hostname)'"=="W7-Rifflart") use  "C:\Users\christine.rifflart\Dropbox\commerce en VA\Choc_CVA\Data\Bases stata/OECD_`yrs'_OUT.dta"
-local sector6 "c10t14 c15t16 c17t19 c20 c21t22 c23 c24 c25 c26 c27 c28 c29 c30t33x c31 c34 c35 c36t37 c40t41 c45 c50t52 c55 c60t63 c64 c65t67 c70 c71 C72 c73t74 c75 c80 c85 c90t93 c95"
-
-generate groupeduchoc_c10t14 = cze_c10t14 + svk_c10t14
-
-
 mkmat arg_c01t05agr-zaf_c95pvh, matrix(Y)
 
-end
-
-compute_leontief_chocnom 2005 "cze svk"
-
-
 *Create matrix Z of inter-industry inter-country trade
-use "H:\Agents\Cochard\Papier_chocCVA\Bases/OECD_`yrs'_Z.dta"
+*use "H:\Agents\Cochard\Papier_chocCVA\Bases/OECD_`yrs'_Z.dta"
+
+if ("`c(hostname)'"=="W7-Rifflart") use  "C:\Users\christine.rifflart\Dropbox\commerce en VA\Choc_CVA\Data\Bases stata/OECD_`yrs'_Z.dta"
+local sector "c01t05agr c10t14 c15t16 c17t19 c20 c21t22 c23 c24 c25 c26 c27 c28 c29 c303233ceq c31 c34 c35 c36t37 c40t41 c45 c50t52 c55 c60t63 c64 c65t67 c70 c71 c72 c73t74 c75 c80 c85 c90t93 c95"
+
+if ("`c(hostname)'"=="W7-Rifflart") merge 1:1 _n using "C:\Users\christine.rifflart\Dropbox\commerce en VA\Choc_CVA\Data\Bases stata\csv.dta"
+
+drop _merge p_shock
+foreach S of local sector {
+	replace `groupeduchoc'_`S' = 0 if c==strupper("`groupeduchoc'")
+	}
+	
+
+
 mkmat arg_c01t05agr-zaf_c95pvh, matrix (Z)
 
 *From vector Y create a diagonal matrix Yd which contains all elements of vector Y on the diagonal
@@ -57,9 +60,13 @@ matrix L=(I-A)
 *Leontief inverse
 matrix L1=inv(L)
 
-display "fin de compute_leontief" `yrs'
+display "fin de compute_leontief_chocnom`groupeduchoc'" `yrs'
 
 end
+
+compute_leontief_chocnom 2005 arg
+
+blok
 
 *-------------------------------------------------------------------------------
 *COMPUTING THE FINAL DEMAND VECTOR : matrix F
