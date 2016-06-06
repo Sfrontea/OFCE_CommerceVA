@@ -1,10 +1,13 @@
 clear
-capture log using "H:\Agents\Cochard\Papier_chocCVA/$S_DATE $S_TIME.log", replace
+
+global dir "H:\Agents\Cochard\Papier_chocCVA"
+
+if ("`c(username)'"=="guillaumedaudin") global dir "~/Dropbox/commerce en VA"
+
+capture log using "$dir/$S_DATE $S_TIME.log", replace
 set matsize 7000
 *set mem 700m if earlier version of stata (<stata 12)
 set more off
-global dir "H:\Agents\Cochard\Papier_chocCVA"
-
 
 *-------------------------------------------------------------------------------
 *COMPUTING LEONTIEF INVERSE MATRIX  : matrix L1
@@ -17,11 +20,15 @@ program compute_leontief
 	args yrs
 *Create vector Y of output from troncated database
 clear
-use "H:\Agents\Cochard\Papier_chocCVA\Bases/OECD_`yrs'_OUT.dta"
+if ("`c(username)'"!="guillaumedaudin") use "$dir\Bases/OECD_`yrs'_OUT.dta"
+if ("`c(username)'"=="guillaumedaudin") use "$dir/Data/ICIO/OECD_`yrs'_OUT.dta"
 mkmat arg_c01t05agr-zaf_c95pvh, matrix(Y)
 
 *Create matrix Z of inter-industry inter-country trade
-use "H:\Agents\Cochard\Papier_chocCVA\Bases/OECD_`yrs'_Z.dta"
+if ("`c(username)'"!="guillaumedaudin") use "$dir\Bases/OECD_`yrs'_Z.dta"
+if ("`c(username)'"=="guillaumedaudin") use "$dir/Data/ICIO/OECD_`yrs'_Z.dta"
+
+
 mkmat arg_c01t05agr-zaf_c95pvh, matrix (Z)
 
 *From vector Y create a diagonal matrix Yd which contains all elements of vector Y on the diagonal
@@ -61,15 +68,20 @@ program compute_leontief_chocnom
 clear
 
 
-*use "H:\Agents\Cochard\Papier_chocCVA\Bases/OECD_`yrs'_OUT.dta"
+*use "$dir\Bases/OECD_`yrs'_OUT.dta"
 *mkmat arg_c01t05agr-zaf_c95pvh, matrix(Y)
 
 *Create matrix Z of inter-industry inter-country trade
 
-use "H:\Agents\Cochard\Papier_chocCVA\Bases/OECD_`yrs'_Z.dta"
+if ("`c(username)'"!="guillaumedaudin") use "$dir\Bases/OECD_`yrs'_Z.dta"
+if ("`c(username)'"=="guillaumedaudin") use "$dir/Data/ICIO/OECD_`yrs'_Z.dta"
 *mkmat arg_c01t05agr-zaf_c95pvh, matrix (Z)
 
-merge 1:1 _n using "H:\Agents\Cochard\Papier_chocCVA\Bases\csv.dta"
+
+if ("`c(username)'"!="guillaumedaudin") merge 1:1 _n using "$dir\Bases\csv.dta"
+if ("`c(username)'"=="guillaumedaudin") merge 1:1 _n using "$dir/Data/Bases stata/csv.dta"
+
+
 drop _merge
 
 ***----  On construit la matrice ZB avec des matrices B diagonales   ------*
@@ -152,7 +164,8 @@ clear
 *set matsize 7000
 set more off
 clear
-use "H:\Agents\Cochard\Papier_chocCVA\Bases/csv.dta"
+if ("`c(username)'"!="guillaumedaudin") use "$dir\Bases\csv.dta"
+if ("`c(username)'"=="guillaumedaudin") use "$dir/Data/Bases stata/csv.dta"
 
 
 replace p_shock = `shk' if c == "`groupeduchoc'"
@@ -184,7 +197,10 @@ capture program drop create_y
 program create_y
 args yrs
 clear
-use "H:\Agents\Cochard\Papier_chocCVA\Bases/OECD_`yrs'_OUT.dta"
+
+if ("`c(username)'"!="guillaumedaudin") use "$dir\Bases/OECD_`yrs'_OUT.dta"
+if ("`c(username)'"=="guillaumedaudin") use "$dir/Data/ICIO/OECD_`yrs'_OUT.dta"
+
 mkmat arg_c01t05agr-zaf_c95pvh, matrix(Y)
 matrix Yt = Y'
 
@@ -195,7 +211,8 @@ capture program drop compute_X
 program compute_X
 	args yrs
 
-use "H:\Agents\Cochard\Papier_chocCVA\Bases/OECD`yrs'.dta", clear
+if ("`c(username)'"!="guillaumedaudin") use "$dir\Bases/OECD`yrs'.dta", clear
+if ("`c(username)'"=="guillaumedaudin") use "$dir/OECD`yrs'.dta", clear
 
 global country2 "arg aus aut bel bgr bra brn can che chl chn chn.npr chn.pro chn.dom col cri cyp cze deu dnk esp est fin fra gbr grc hkg hrv hun idn ind irl isl isr ita jpn khm kor ltu lux lva mex mex.ngm mex.gmf mlt mys nld nor nzl phl pol prt rou row rus sau sgp svk svn swe tha tun tur twn usa vnm zaf"
 
@@ -235,7 +252,8 @@ capture program drop compute_VA
 program compute_VA
 	args yrs
 clear
-use "H:\Agents\Cochard\Papier_chocCVA\Bases/OECD`yrs'.dta"
+if ("`c(username)'"!="guillaumedaudin") use "$dir\Bases/OECD`yrs'.dta", clear
+if ("`c(username)'"=="guillaumedaudin") use "$dir/OECD`yrs'.dta", clear
 keep if v1 == "VA.TAXSUB"
 drop v1
 mkmat arg_c01t05agr-zaf_c95pvh, matrix(VA)
@@ -249,7 +267,8 @@ clear
 *set matsize 7000
 set more off
 clear
-use "H:\Agents\Cochard\Papier_chocCVA\Bases/csv.dta"
+if ("`c(username)'"!="guillaumedaudin") use "$dir\Bases\csv.dta"
+if ("`c(username)'"=="guillaumedaudin") use "$dir/Data/Bases stata/csv.dta"
 matrix Yt = Y'
 svmat Yt
 svmat X
@@ -347,13 +366,13 @@ svmat shock`i'
 }
 
 * shockARG1 represents the mean effect of a price shock coming from Argentina for each country
-save "H:\Agents\Cochard\Papier_chocCVA\Bases\Devaluations/mean_chg_`wgt'_`yrs'.dta", replace
+save "$dir\Results\Devaluations/mean_chg_`wgt'_`yrs'.dta", replace
 *We obtain a table of mean effect of a price shock from each country to all countries
 
-export excel using "H:\Agents\Cochard\Papier_chocCVA\Bases\Devaluations/mean_chg_`wgt'_`yrs'.xls", firstrow(variables)
+export excel using "$dir\Results\Devaluations/mean_chg_`wgt'_`yrs'.xls", firstrow(variables)
 
 set trace off
-set more on
+*set more on
 
 end
 
@@ -387,10 +406,10 @@ clear
 svmat shock`zone'
 
 * shockARG1 represents the mean effect of a price shock coming from Argentina for each country
-save "H:\Agents\Cochard\Papier_chocCVA\Bases\Devaluations/mean_`zone'_`wgt'_`yrs'.dta", replace
+save "$dir\Results\Devaluations/mean_`zone'_`wgt'_`yrs'.dta", replace
 *We obtain a table of mean effect of a price shock from each country to all countries
 
-export excel using "H:\Agents\Cochard\Papier_chocCVA\Bases\Devaluations/mean_`zone'_`wgt'_`yrs'.xls", firstrow(variables)
+export excel using "$dir\Results\Devaluations/mean_`zone'_`wgt'_`yrs'.xls", firstrow(variables)
 
 set trace off
 set more on
@@ -415,8 +434,11 @@ local eastern "BGR CZE HRV HUN POL ROU "
 
 // Fabrication des fichiers d'effets moyens des chocs de change
 
-	compute_leontief 1995
-	table_mean 1995 Yt 1 
+*	compute_leontief 1995
+*	table_mean 1995 Yt 1 
+
+compute_leontief 2011
+table_mean 2011 Yt 1 
 
 
 
