@@ -130,8 +130,6 @@ replace grchoc2=0
 }
 
 
-blouf
-
 drop grchoc grchoc2 pays
 mkmat arg_c01t05agr-zaf_c95pvh, matrix (ZB)
 
@@ -146,14 +144,14 @@ mkmat arg_c01t05agr-zaf_c95pvh, matrix (ZB)
 *matrix A=Z*Yd1
 matrix B=ZB*Yd1
 
-
+/*
 putexcel set "$dir\Matrix_ZB.xlsx", replace
 putexcel A1=matrix(ZB)
 putexcel set "$dir\Matrix_Yd1.xlsx", replace
 putexcel A1=matrix(Yd1)
 putexcel set "$dir\Matrix_B.xlsx", replace
 putexcel A1=matrix(B)
-
+*/
 
 
 
@@ -202,11 +200,12 @@ program shock_exch
 matrix shock_x_B = p_shockt*B
 matrix C`groupeduchoc' = p_shockt+p_shockt*B*L1
 
+/*
 putexcel set "$dir\Matrix_shock_x_B.xlsx", replace
 putexcel A1=matrix(shock_x_B)
 putexcel set "$dir\Matrix_L1.xlsx", replace
 putexcel A1=matrix(L1)
-
+*/
 
 
 *Result example: using p_shock = 0.05 if c == "ARG" & s == "C01T05": if prices in agriculture increase by 5% in Argentina, output prices in the sector of agriculture in Argentina increase by 5.8%
@@ -391,10 +390,10 @@ svmat shock`i'
 }
 
 * shockARG1 represents the mean effect of a price shock coming from Argentina for each country
-save "$dir\Results\Devaluations/mean_chg_`wgt'_`yrs'.dta", replace
+save "$dir/Results/Devaluations/mean_chg_`wgt'_`yrs'.dta", replace
 *We obtain a table of mean effect of a price shock from each country to all countries
 
-export excel using "$dir\Results\Devaluations/mean_chg_`wgt'_`yrs'.xls", firstrow(variables)
+export excel using "$dir/Results/Devaluations/mean_chg_`wgt'_`yrs'.xls", firstrow(variables) replace
 
 set trace off
 *set more on
