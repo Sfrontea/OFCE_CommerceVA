@@ -88,14 +88,15 @@ drop _merge
 
 gen grchoc = 0
 
-foreach p of global `groupeduchoc' {
+foreach p of local groupeduchoc {
 	replace grchoc = 1 if c == "`p'" 
 
-	if (`p'=="MEX") {
+
+	if ("`p'"=="MEX") {
 		replace grchoc = 1 if c == "MEXGMF" 
 		replace grchoc = 1 if c == "MEXNGM" 
 		}
-	if (`p'=="CHN") {
+	if ("`p'"=="CHN") {
 		replace grchoc = 1 if c == "CHNDOM" 
 		replace grchoc = 1 if c == "CHNNPR" 
 		replace grchoc = 1 if c == "CHNPRO" 
@@ -108,15 +109,15 @@ gen grchoc2=0
 
 foreach var of varlist arg_c01t05agr-zaf_c95pvh {
 	replace pays = strupper(substr("`var'",1,strpos("`var'","_")-1))
-	foreach p of global `groupeduchoc' {
+	foreach p of local groupeduchoc {
 	
 		replace grchoc2 = 1 if pays == "`p'" 
 
-		if (`p'=="MEX") {
+		if ("`p'"=="MEX") {
 			replace grchoc2 = 1 if pays == "MEXGMF" 
 			replace grchoc2 = 1 if pays == "MEXNGM" 
 		}
-		if (`p'=="CHN") {
+		if ("`p'"=="CHN") {
 			replace grchoc2 = 1 if pays == "CHNDOM" 
 			replace grchoc2 = 1 if pays == "CHNNPR" 
 			replace grchoc2 = 1 if pays == "CHNPRO" 
@@ -127,6 +128,10 @@ replace `var'=0 if (grchoc==1 & grchoc2==1)
 replace grchoc2=0
 
 }
+
+
+blouf
+
 drop grchoc grchoc2 pays
 mkmat arg_c01t05agr-zaf_c95pvh, matrix (ZB)
 
@@ -140,6 +145,17 @@ mkmat arg_c01t05agr-zaf_c95pvh, matrix (ZB)
 *Then multiply Yd1 by Z 
 *matrix A=Z*Yd1
 matrix B=ZB*Yd1
+
+
+putexcel set "$dir\Matrix_ZB.xlsx", replace
+putexcel A1=matrix(ZB)
+putexcel set "$dir\Matrix_Yd1.xlsx", replace
+putexcel A1=matrix(Yd1)
+putexcel set "$dir\Matrix_B.xlsx", replace
+putexcel A1=matrix(B)
+
+
+
 
 *Create identity matrix at the size we want
 *mat I=I(2159)
@@ -183,7 +199,16 @@ capture program drop shock_exch
 program shock_exch
 	args groupeduchoc 
 *Multiplying the transpose of vector shock `v'_shockt by L1 to get the impact of a shock on the output price vector
+matrix shock_x_B = p_shockt*B
 matrix C`groupeduchoc' = p_shockt+p_shockt*B*L1
+
+putexcel set "$dir\Matrix_shock_x_B.xlsx", replace
+putexcel A1=matrix(shock_x_B)
+putexcel set "$dir\Matrix_L1.xlsx", replace
+putexcel A1=matrix(L1)
+
+
+
 *Result example: using p_shock = 0.05 if c == "ARG" & s == "C01T05": if prices in agriculture increase by 5% in Argentina, output prices in the sector of agriculture in Argentina increase by 5.8%
 
 end
@@ -437,7 +462,7 @@ local eastern "BGR CZE HRV HUN POL ROU "
 *	compute_leontief 1995
 *	table_mean 1995 Yt 1 
 
-compute_leontief 2011
+*compute_leontief 2011
 table_mean 2011 Yt 1 
 
 
