@@ -37,16 +37,26 @@ matrix Yd=diag(Y)
 matrix Yd1=invsym(Yd)
 
 *Then multiply Yd1 by Z 
-matrix A=Z*Yd1
+matrix A_`yrs'=Z*Yd1
+
+clear
+svmat A_`yrs', names(col)
+save "H:\Agents\Cochard\Papier_chocCVA\Bases/A_`yrs'.dta", replace
+
 
 *Create identity matrix at the size we want
 mat I=I(2159)
 
 *I-A
-matrix L=(I-A)
+matrix L=(I-A_`yrs')
 
 *Leontief inverse
-matrix L1=inv(L)
+matrix L1_`yrs'=inv(L)
+
+clear
+svmat L1_`yrs', names(col)
+save "H:\Agents\Cochard\Papier_chocCVA\Bases/L1_`yrs'.dta", replace
+
 
 display "fin de compute_leontieff" `yrs'
 
@@ -68,29 +78,26 @@ program compute_leontief_chocnom
 clear
 
 
-*use "$dir\Bases/OECD_`yrs'_OUT.dta"
+*use "H:\Agents\Cochard\Papier_chocCVA\Bases/OECD_`yrs'_OUT.dta"
 *mkmat arg_c01t05agr-zaf_c95pvh, matrix(Y)
 
 *Create matrix Z of inter-industry inter-country trade
 
 if ("`c(username)'"!="guillaumedaudin") use "$dir\Bases/OECD_`yrs'_Z.dta"
 if ("`c(username)'"=="guillaumedaudin") use "$dir/Data/ICIO/OECD_`yrs'_Z.dta"
-*mkmat arg_c01t05agr-zaf_c95pvh, matrix (Z)
+mkmat arg_c01t05agr-zaf_c95pvh, matrix (A)
 
-
+merge 1:1 _n using "H:\Agents\Cochard\Papier_chocCVA\Bases\csv.dta"
 if ("`c(username)'"!="guillaumedaudin") merge 1:1 _n using "$dir\Bases\csv.dta"
 if ("`c(username)'"=="guillaumedaudin") merge 1:1 _n using "$dir/Data/Bases stata/csv.dta"
-
-
 drop _merge
 
-***----  On construit la matrice ZB avec des matrices B diagonales   ------*
+***----  On construit la matrice B avec des matrices 0 diagonales  pour les pays choqués ------*
 
 gen grchoc = 0
 
 foreach p of local groupeduchoc {
 	replace grchoc = 1 if c == "`p'" 
-
 
 	if ("`p'"=="MEX") {
 		replace grchoc = 1 if c == "MEXGMF" 
@@ -128,42 +135,60 @@ replace `var'=0 if (grchoc==1 & grchoc2==1)
 replace grchoc2=0
 
 }
-
-
 drop grchoc grchoc2 pays
-mkmat arg_c01t05agr-zaf_c95pvh, matrix (ZB)
+mkmat arg_c01t05agr-zaf_c95pvh, matrix (B)
 
-***----  On construit les matrice A et B (coef. techniques),  et la Leontief  ------*
+***----  On construit la matrice B2 avec des matrices 0 diagonales  pour les pays non choqués ------*
+clear
+use "H:\Agents\Cochard\Papier_chocCVA\Bases/A_`yrs'.dta"
+mkmat arg_c01t05agr-zaf_c95pvh, matrix (A)
 
-*From vector Y create a diagonal matrix Yd which contains all elements of vector Y on the diagonal
-*matrix Yd=diag(Y)
-*Take the inverse of Yd (with invsym instead of inv for more accurateness and to avoid errors)
-*matrix Yd1=invsym(Yd)
+merge 1:1 _n using "H:\Agents\Cochard\Papier_chocCVA\Bases\csv.dta"
+drop _merge
 
-*Then multiply Yd1 by Z 
-*matrix A=Z*Yd1
-matrix B=ZB*Yd1
+gen grchoc = 0
 
-/*
-putexcel set "$dir\Matrix_ZB.xlsx", replace
-putexcel A1=matrix(ZB)
-putexcel set "$dir\Matrix_Yd1.xlsx", replace
-putexcel A1=matrix(Yd1)
-putexcel set "$dir\Matrix_B.xlsx", replace
-putexcel A1=matrix(B)
-*/
+foreach p of local groupeduchoc {
+	replace grchoc = 1 if c == "`p'" 
 
+	if ("`p'"=="MEX") {
+		replace grchoc = 1 if c == "MEXGMF" 
+		replace grchoc = 1 if c == "MEXNGM" 
+		}
+	if ("`p'"=="CHN") {
+		replace grchoc = 1 if c == "CHNDOM" 
+		replace grchoc = 1 if c == "CHNNPR" 
+		replace grchoc = 1 if c == "CHNPRO" 
+		}
+}
+ 
 
+gen pays="0"
+gen grchoc2=0
 
-*Create identity matrix at the size we want
-*mat I=I(2159)
+foreach var of varlist arg_c01t05agr-zaf_c95pvh {
+	replace pays = strupper(substr("`var'",1,strpos("`var'","_")-1))
+	foreach p of local groupeduchoc {
+	
+		replace grchoc2 = 1 if pays == "`p'" 
 
-*I-A
-*matrix L=(I-A)
+		if ("`p'"=="MEX") {
+			replace grchoc2 = 1 if pays == "MEXGMF" 
+			replace grchoc2 = 1 if pays == "MEXNGM" 
+		}
+		if ("`p'"=="CHN") {
+			replace grchoc2 = 1 if pays == "CHNDOM" 
+			replace grchoc2 = 1 if pays == "CHNNPR" 
+			replace grchoc2 = 1 if pays == "CHNPRO" 
+		}
 
-*Leontief inverse
-*matrix L1=inv(L)
+	}
+replace `var'=0 if (grchoc==0 & grchoc2==0)
+replace grchoc2=0
 
+}
+drop grchoc grchoc2 pays
+mkmat arg_c01t05agr-zaf_c95pvh, matrix (B2)
 display "fin de compute_leontief_chocnom`groupeduchoc'" `yrs'
 
 end
@@ -173,16 +198,30 @@ end
 *---------------------------------------------------------------------------------------------
 capture program drop vector_shock_exch
 program vector_shock_exch
-		args shk groupeduchoc
+		args shk groupeduchoc 
 clear
 *set matsize 7000
 set more off
 clear
 if ("`c(username)'"!="guillaumedaudin") use "$dir\Bases\csv.dta"
 if ("`c(username)'"=="guillaumedaudin") use "$dir/Data/Bases stata/csv.dta"
+foreach p of local groupeduchoc {
 
+	replace p_shock = `shk' if c == "`groupeduchoc'"
+}
+*I extract vector p_shock from database with mkmat
+mkmat p_shock
+matrix p_shockt=p_shock'
 
-replace p_shock = `shk' if c == "`groupeduchoc'"
+generate p_shock2=1/(1+`shk')
+foreach p of local groupeduchoc {
+
+	replace p_shock = 0 if c == "`groupeduchoc'"
+}
+*I extract vector p_shock from database with mkmat
+mkmat p_shock2
+matrix p_shock2t=p_shock2'
+
 *Example: p_shock = 0.05 if (c = "ARG" & s == "C01T05")
 
 *I extract vector p_shock from database with mkmat
@@ -195,19 +234,15 @@ end
 
 capture program drop shock_exch
 program shock_exch
-	args groupeduchoc 
+	args yrs groupeduchoc 
+	
+clear	
+use "H:\Agents\Cochard\Papier_chocCVA\Bases/L1_`yrs'.dta"
+mkmat r1-r2159, matrix (L1)
+
+
 *Multiplying the transpose of vector shock `v'_shockt by L1 to get the impact of a shock on the output price vector
-matrix shock_x_B = p_shockt*B
-matrix C`groupeduchoc' = p_shockt+p_shockt*B*L1
-
-/*
-putexcel set "$dir\Matrix_shock_x_B.xlsx", replace
-putexcel A1=matrix(shock_x_B)
-putexcel set "$dir\Matrix_L1.xlsx", replace
-putexcel A1=matrix(L1)
-*/
-
-
+matrix C`groupeduchoc' = p_shockt+p_shockt*B*L1+p_shock2t*B2*L1
 *Result example: using p_shock = 0.05 if c == "ARG" & s == "C01T05": if prices in agriculture increase by 5% in Argentina, output prices in the sector of agriculture in Argentina increase by 5.8%
 
 end
@@ -370,16 +405,20 @@ set trace on
 set more off
 
 *compute_leontieff `yrs'
-create_y `yrs'
-compute_X `yrs'
-compute_VA `yrs'
+if ("`wgt'" == "Yt")  {
+	create_y `yrs' 
+	}
+if ("`wgt'" == "X")  {
+	compute_X `yrs'
+	}
+//compute_VA `yrs'
 
 	
-global noneuro "ARG AUS BGR BRA BRN CAN CHE CHL CHN CHNDOM CHNNPR CHNPRO COL CRI CZE DNK GBR HKG HRV HUN IDN IND ISL ISR JPN KHM KOR MEX MEXGMF MEXNGM MYS NOR NZL PHL POL ROU ROW RUS SAU SGP SWE THA TUN TUR TWN USA VNM ZAF"
+global noneuro "ARG AUS BGR BRA BRN CAN CHE CHL CHN COL CRI CZE DNK GBR HKG HRV HUN IDN IND ISL ISR JPN KHM KOR MEX MYS NOR NZL PHL POL ROU ROW RUS SAU SGP SWE THA TUN TUR TWN USA VNM ZAF"
 foreach i of global noneuro {
 	compute_leontief_chocnom `yrs' `i'
 	vector_shock_exch `shk' `i'   //
-	shock_exch `i' 
+	shock_exch `yrs' `i' 
 	compute_mean `i' `wgt'
 }
 
@@ -396,7 +435,7 @@ save "$dir/Results/Devaluations/mean_chg_`wgt'_`yrs'.dta", replace
 export excel using "$dir/Results/Devaluations/mean_chg_`wgt'_`yrs'.xls", firstrow(variables) replace
 
 set trace off
-*set more on
+set more on
 
 end
 
@@ -415,15 +454,19 @@ set more off
 clear
 
 *compute_leontieff `yrs'
-create_y `yrs'
-compute_X `yrs'
-compute_VA `yrs'
+if ("`wgt'" == "Yt")  {
+	create_y `yrs' 
+	}
+if ("`wgt'" == "X")  {
+	compute_X `yrs'
+	}
+//compute_VA `yrs'
 
 
 *global noneuro "ARG AUS BGR BRA BRN CAN CHE CHL CHN CHNDOM CHNNPR CHNPRO COL CRI CZE DNK GBR HKG HRV HUN IDN IND ISL ISR JPN KHM KOR MEX MEXGMF MEXNGM MYS NOR NZL PHL POL ROU ROW RUS SAU SGP SWE THA TUN TUR TWN USA VNM ZAF"
 	compute_leontieff_chocnom `yrs' `zone'
 	vector_shock_exch `shk' `zone'   //
-	shock_exch `zone' 
+	shock_exch `yrs' `zone' 
 	compute_mean `zone' `wgt'
 
 clear
@@ -449,28 +492,27 @@ end
 clear
 set more off
 
-global country "ARG AUS AUT BEL BGR BRA BRN CAN CHE CHL CHN CHNDOM CHNNPR CHNPRO COL CRI CYP CZE DEU DNK ESP EST FIN FRA GBR GRC HKG HRV HUN IDN IND IRL ISL ISR ITA JPN KHM KOR LTU LUX LVA MEX MEXGMF MEXNGM MLT MYS NLD NOR NZL PHL POL PRT ROU ROW RUS SAU SGP SVK SVN SWE THA TUN TUR TWN USA VNM ZAF"
+*global country "ARG AUS AUT BEL BGR BRA BRN CAN CHE CHL CHN CHNDOM CHNNPR CHNPRO COL CRI CYP CZE DEU DNK ESP EST FIN FRA GBR GRC HKG HRV HUN IDN IND IRL ISL ISR ITA JPN KHM KOR LTU LUX LVA MEX MEXGMF MEXNGM MLT MYS NLD NOR NZL PHL POL PRT ROU ROW RUS SAU SGP SVK SVN SWE THA TUN TUR TWN USA VNM ZAF"
+global country "ARG AUS AUT BEL BGR BRA BRN CAN CHE CHL CHN COL CRI CYP CZE DEU DNK ESP EST FIN FRA GBR GRC HKG HRV HUN IDN IND IRL ISL ISR ITA JPN KHM KOR LTU LUX LVA MEX MLT MYS NLD NOR NZL PHL POL PRT ROU ROW RUS SAU SGP SVK SVN SWE THA TUN TUR TWN USA VNM ZAF"
+
 
 local eurozone "AUT BEL CYP DEU ESP EST FIN FRA GRC IRL ITA LTU LUX LVA MLT NLD PRT SVK SVN"
-local noneuro "ARG AUS BGR BRA BRN CAN CHE CHL CHN  COL CRI CZE DNK GBR HKG HRV HUN IDN IND ISL ISR JPN KHM KOR MEX MYS NOR NZL PHL POL ROU ROW RUS SAU SGP SWE THA TUN TUR TWN USA VNM ZAF"
+local noneuro "ARG AUS BGR BRA BRN CAN CHE CHL CHN COL CRI CZE DNK GBR HKG HRV HUN IDN IND ISL ISR JPN KHM KOR MEX MYS NOR NZL PHL POL ROU ROW RUS SAU SGP SWE THA TUN TUR TWN USA VNM ZAF"
 local china "CHN CHNDOM CHNNPR CHNPRO"
 local eastern "BGR CZE HRV HUN POL ROU "
 
 // Fabrication des fichiers d'effets moyens des chocs de change
 
-*	compute_leontief 1995
-*	table_mean 1995 Yt 1 
 
-*compute_leontief 2011
-table_mean 2011 Yt 1 
-
-
+foreach i of numlist 1995 2000 2005 2009 2010 2011{
+	clear
+	set more off
+	compute_leontief `i'
+}
 
 foreach i of numlist 1995 2000 2005 2009 2010 2011{
 
-	compute_leontief `i'
-	
-	foreach j in Yt X {
+		foreach j in Yt X {
 		table_mean `i' `j' 1 
 	}
 }
