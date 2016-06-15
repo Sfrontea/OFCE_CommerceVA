@@ -41,7 +41,7 @@ matrix A_`yrs'=Z*Yd1
 
 clear
 svmat A_`yrs', names(col)
-save "H:\Agents\Cochard\Papier_chocCVA\Bases/A_`yrs'.dta", replace
+save "$dir\Bases/A_`yrs'.dta", replace
 
 
 *Create identity matrix at the size we want
@@ -55,7 +55,7 @@ matrix L1_`yrs'=inv(L)
 
 clear
 svmat L1_`yrs', names(col)
-save "H:\Agents\Cochard\Papier_chocCVA\Bases/L1_`yrs'.dta", replace
+save "$dir\Bases/L1_`yrs'.dta", replace
 
 
 display "fin de compute_leontieff" `yrs'
@@ -87,7 +87,7 @@ if ("`c(username)'"!="guillaumedaudin") use "$dir\Bases/OECD_`yrs'_Z.dta"
 if ("`c(username)'"=="guillaumedaudin") use "$dir/Data/ICIO/OECD_`yrs'_Z.dta"
 mkmat arg_c01t05agr-zaf_c95pvh, matrix (A)
 
-merge 1:1 _n using "H:\Agents\Cochard\Papier_chocCVA\Bases\csv.dta"
+merge 1:1 _n using "$dir\Bases\csv.dta"
 if ("`c(username)'"!="guillaumedaudin") merge 1:1 _n using "$dir\Bases\csv.dta"
 if ("`c(username)'"=="guillaumedaudin") merge 1:1 _n using "$dir/Data/Bases stata/csv.dta"
 drop _merge
@@ -140,10 +140,10 @@ mkmat arg_c01t05agr-zaf_c95pvh, matrix (B)
 
 ***----  On construit la matrice B2 avec des matrices 0 diagonales  pour les pays non choqués ------*
 clear
-use "H:\Agents\Cochard\Papier_chocCVA\Bases/A_`yrs'.dta"
+use "$dir\Bases/A_`yrs'.dta"
 mkmat arg_c01t05agr-zaf_c95pvh, matrix (A)
 
-merge 1:1 _n using "H:\Agents\Cochard\Papier_chocCVA\Bases\csv.dta"
+merge 1:1 _n using "$dir\Bases\csv.dta"
 drop _merge
 
 gen grchoc = 0
@@ -237,7 +237,7 @@ program shock_exch
 	args yrs groupeduchoc 
 	
 clear	
-use "H:\Agents\Cochard\Papier_chocCVA\Bases/L1_`yrs'.dta"
+use "$dir\Bases/L1_`yrs'.dta"
 mkmat r1-r2159, matrix (L1)
 
 
