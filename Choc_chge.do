@@ -1,10 +1,15 @@
 clear
-capture log using "H:\Agents\Cochard\Papier_chocCVA/$S_DATE $S_TIME.log", replace
+
+global dir "H:\Agents\Cochard\Papier_chocCVA"
+
+if ("`c(username)'"=="guillaumedaudin") global dir "~/Dropbox/commerce en VA"
+if ("`c(username)'"=="L841580") global dir "H:\Agents\Cochard\Papier_chocCVA"
+
+
+capture log using "$dir/$S_DATE $S_TIME.log", replace
 set matsize 7000
 *set mem 700m if earlier version of stata (<stata 12)
 set more off
-global dir "H:\Agents\Cochard\Papier_chocCVA"
-
 
 *-------------------------------------------------------------------------------
 *COMPUTING LEONTIEF INVERSE MATRIX  : matrix L1
@@ -17,11 +22,14 @@ program compute_leontief
 	args yrs
 *Create vector Y of output from troncated database
 clear
-use "H:\Agents\Cochard\Papier_chocCVA\Bases/OECD_`yrs'_OUT.dta"
+use "$dir/Bases/OECD_`yrs'_OUT.dta"
 mkmat arg_c01t05agr-zaf_c95pvh, matrix(Y)
 
 *Create matrix Z of inter-industry inter-country trade
-use "H:\Agents\Cochard\Papier_chocCVA\Bases/OECD_`yrs'_Z.dta"
+use "$dir/Bases/OECD_`yrs'_Z.dta"
+
+
+
 mkmat arg_c01t05agr-zaf_c95pvh, matrix (Z)
 
 *From vector Y create a diagonal matrix Yd which contains all elements of vector Y on the diagonal
@@ -34,7 +42,7 @@ matrix A_`yrs'=Z*Yd1
 
 clear
 svmat A_`yrs', names(col)
-save "H:\Agents\Cochard\Papier_chocCVA\Bases/A_`yrs'.dta", replace
+save "$dir/Bases/A_`yrs'.dta", replace
 
 
 *Create identity matrix at the size we want
@@ -48,7 +56,7 @@ matrix L1_`yrs'=inv(L)
 
 clear
 svmat L1_`yrs', names(col)
-save "H:\Agents\Cochard\Papier_chocCVA\Bases/L1_`yrs'.dta", replace
+save "$dir/Bases/L1_`yrs'.dta", replace
 
 
 display "fin de compute_leontieff" `yrs'
@@ -66,20 +74,20 @@ set more off
 capture program drop compute_leontief_chocnom
 program compute_leontief_chocnom
 	args yrs groupeduchoc
-*ex : compute_leontief_chocnom 2005 arg	
+*ex : compute_leontief_chocnom 2005 ARG	
 *Create vector Y of output from troncated database
 clear
 
 
-*use "H:\Agents\Cochard\Papier_chocCVA\Bases/OECD_`yrs'_OUT.dta"
+*use "H:\Agents\Cochard\Papier_chocCVA/Bases/OECD_`yrs'_OUT.dta"
 *mkmat arg_c01t05agr-zaf_c95pvh, matrix(Y)
 
 *Create matrix Z of inter-industry inter-country trade
 
-use "H:\Agents\Cochard\Papier_chocCVA\Bases/A_`yrs'.dta"
-mkmat arg_c01t05agr-zaf_c95pvh, matrix (A)
+use "$dir/Bases/A_`yrs'.dta", clear
 
-merge 1:1 _n using "H:\Agents\Cochard\Papier_chocCVA\Bases\csv.dta"
+
+merge 1:1 _n using "$dir/Bases/csv.dta"
 drop _merge
 
 ***----  On construit la matrice B avec des matrices 0 diagonales  pour les pays choqués ------*
@@ -109,6 +117,7 @@ foreach var of varlist arg_c01t05agr-zaf_c95pvh {
 	foreach p of local groupeduchoc {
 	
 		replace grchoc2 = 1 if pays == "`p'" 
+		
 
 		if ("`p'"=="MEX") {
 			replace grchoc2 = 1 if pays == "MEXGMF" 
@@ -121,6 +130,7 @@ foreach var of varlist arg_c01t05agr-zaf_c95pvh {
 		}
 
 	}
+	
 replace `var'=0 if (grchoc==1 & grchoc2==1)
 replace grchoc2=0
 
@@ -128,27 +138,28 @@ replace grchoc2=0
 drop grchoc grchoc2 pays
 mkmat arg_c01t05agr-zaf_c95pvh, matrix (B)
 
-***----  On construit la matrice B2 avec des matrices 0 diagonales  pour les pays non choqués ------*
+***----  On construit la matrice B2 avec des colonnes 0  pour les pays non choqués ------*
 clear
-use "H:\Agents\Cochard\Papier_chocCVA\Bases/A_`yrs'.dta", clear
-mkmat arg_c01t05agr-zaf_c95pvh, matrix (A)
+use "$dir/Bases/A_`yrs'.dta", clear
 
-merge 1:1 _n using "H:\Agents\Cochard\Papier_chocCVA\Bases\csv.dta"
+
+
+merge 1:1 _n using "$dir/Bases/csv.dta"
 drop _merge
 
-gen grchoc = 0
+gen grchoc_ligne = 0
 
 foreach p of local groupeduchoc {
-	replace grchoc = 1 if c == "`p'" 
+	replace grchoc_ligne = 1 if c == "`p'" 
 
 	if ("`p'"=="MEX") {
-		replace grchoc = 1 if c == "MEXGMF" 
-		replace grchoc = 1 if c == "MEXNGM" 
+		replace grchoc_ligne = 1 if c == "MEXGMF" 
+		replace grchoc_ligne = 1 if c == "MEXNGM" 
 		}
 	if ("`p'"=="CHN") {
-		replace grchoc = 1 if c == "CHNDOM" 
-		replace grchoc = 1 if c == "CHNNPR" 
-		replace grchoc = 1 if c == "CHNPRO" 
+		replace grchoc_ligne = 1 if c == "CHNDOM" 
+		replace grchoc_ligne = 1 if c == "CHNNPR" 
+		replace grchoc_ligne = 1 if c == "CHNPRO" 
 		}
 }
  
@@ -173,12 +184,16 @@ foreach var of varlist arg_c01t05agr-zaf_c95pvh {
 		}
 
 	}
-replace `var'=0 if (grchoc==0 & grchoc2==0)
+
+	
+	replace `var'=0 if (grchoc_ligne==0 & grchoc2==0)
 replace grchoc2=0
 
+
 }
-drop grchoc grchoc2 pays
+drop grchoc_ligne grchoc2 pays
 mkmat arg_c01t05agr-zaf_c95pvh, matrix (B2)
+
 display "fin de compute_leontief_chocnom`groupeduchoc'" `yrs'
 
 end
@@ -193,8 +208,7 @@ clear
 *set matsize 7000
 set more off
 clear
-use "H:\Agents\Cochard\Papier_chocCVA\Bases/csv.dta"
-
+use "$dir/Bases/csv.dta", clear
 foreach p of local groupeduchoc {
 
 	replace p_shock = `shk' if c == "`groupeduchoc'"
@@ -227,12 +241,12 @@ program shock_exch
 	args yrs groupeduchoc 
 	
 clear	
-use "H:\Agents\Cochard\Papier_chocCVA\Bases/L1_`yrs'.dta"
+use "$dir/Bases/L1_`yrs'.dta"
 mkmat r1-r2159, matrix (L1)
 
 
 *Multiplying the transpose of vector shock `v'_shockt by L1 to get the impact of a shock on the output price vector
-matrix C`groupeduchoc' = p_shockt+p_shockt*B*(I+L1)+p_shock2t*B2*(I+L1)
+matrix C`groupeduchoc' = p_shockt+(p_shockt*B+p_shock2t*B2)*L1
 *Result example: using p_shock = 0.05 if c == "ARG" & s == "C01T05": if prices in agriculture increase by 5% in Argentina, output prices in the sector of agriculture in Argentina increase by 5.8%
 
 end
@@ -246,7 +260,10 @@ capture program drop create_y
 program create_y
 args yrs
 clear
-use "H:\Agents\Cochard\Papier_chocCVA\Bases/OECD_`yrs'_OUT.dta"
+
+use "$dir/Bases/OECD_`yrs'_OUT.dta"
+
+
 mkmat arg_c01t05agr-zaf_c95pvh, matrix(Y)
 matrix Yt = Y'
 
@@ -257,7 +274,8 @@ capture program drop compute_X
 program compute_X
 	args yrs
 
-use "H:\Agents\Cochard\Papier_chocCVA\Bases/OECD`yrs'.dta", clear
+use "$dir/Bases/OECD`yrs'.dta", clear
+
 
 global country2 "arg aus aut bel bgr bra brn can che chl chn chn.npr chn.pro chn.dom col cri cyp cze deu dnk esp est fin fra gbr grc hkg hrv hun idn ind irl isl isr ita jpn khm kor ltu lux lva mex mex.ngm mex.gmf mlt mys nld nor nzl phl pol prt rou row rus sau sgp svk svn swe tha tun tur twn usa vnm zaf"
 
@@ -297,7 +315,7 @@ capture program drop compute_VA
 program compute_VA
 	args yrs
 clear
-use "H:\Agents\Cochard\Papier_chocCVA\Bases/OECD`yrs'.dta"
+use "$dir/Bases/OECD`yrs'.dta", clear
 keep if v1 == "VA.TAXSUB"
 drop v1
 mkmat arg_c01t05agr-zaf_c95pvh, matrix(VA)
@@ -311,11 +329,11 @@ clear
 *set matsize 7000
 set more off
 clear
-use "H:\Agents\Cochard\Papier_chocCVA\Bases/csv.dta"
+use "$dir/Bases/csv.dta"
 matrix Yt = Y'
 svmat Yt
 svmat X
-//svmat VAt
+svmat VAt
 
 *I decide whether I use the production or export or value-added vector as weight modifying the argument "wgt" : Yt or X or VAt
 *Compute the vector of mean effects :
@@ -385,7 +403,7 @@ program table_mean
 *yrs = years, wgt = Yt (output) or X (export) or VAt (value-added)
 clear
 *set matsize 7000
-set trace on
+* set trace on
 set more off
 
 *compute_leontieff `yrs'
@@ -413,17 +431,17 @@ svmat shock`i'
 }
 
 * shockARG1 represents the mean effect of a price shock coming from Argentina for each country
-save "H:\Agents\Cochard\Papier_chocCVA\Bases\Devaluations/mean_chg_`wgt'_`yrs'.dta", replace
+save "$dir/Results/Devaluations/mean_chg_`wgt'_`yrs'.dta", replace
 *We obtain a table of mean effect of a price shock from each country to all countries
 
-export excel using "H:\Agents\Cochard\Papier_chocCVA\Bases\Devaluations/mean_chg_`wgt'_`yrs'.xls", firstrow(variables)
+export excel using "$dir/Results/Devaluations/mean_chg_`wgt'_`yrs'.xls", firstrow(variables) replace
 
-set trace off
+* set trace off
 set more on
 
 end
 
-
+/*
 *-------------------------------------------------------------------------------
 *DEVALUATION OF THE EURO What happens when the euro is devaluated? To know that, we do a shock of 1 on all countries but the eurozone.
 *-------------------------------------------------------------------------------
@@ -434,10 +452,11 @@ program shock_deval
 *yrs = years,shk = 1, wgt = Yt (output) or X (export) or VAt (value-added), zone = noneuro (for a shock corresponding to a devaluation of the euro), china or eastern
 
 set matsize 7000
+*set trace on
 set more off
 clear
 
-*compute_leontieff `yrs'
+compute_leontieff `yrs'
 if ("`wgt'" == "Yt")  {
 	create_y `yrs' 
 	}
@@ -457,17 +476,17 @@ clear
 svmat shock`zone'
 
 * shockARG1 represents the mean effect of a price shock coming from Argentina for each country
-save "H:\Agents\Cochard\Papier_chocCVA\Bases\Devaluations/mean_`zone'_`wgt'_`yrs'.dta", replace
+save "$dir/Results/Devaluations/mean_`zone'_`wgt'_`yrs'.dta", replace
 *We obtain a table of mean effect of a price shock from each country to all countries
 
-export excel using "H:\Agents\Cochard\Papier_chocCVA\Bases\Devaluations/mean_`zone'_`wgt'_`yrs'.xls", firstrow(variables)
+export excel using "$dir/Results/Devaluations/mean_`zone'_`wgt'_`yrs'.xls", firstrow(variables)
 
-set trace off
-set more on
+*set trace off
+*set more on
 
 end
 
-
+*/
 
 *--------------------------------------------------------------------------------
 *LIST ALL PROGRAMS AND RUN THEM
@@ -488,15 +507,18 @@ local eastern "BGR CZE HRV HUN POL ROU "
 // Fabrication des fichiers d'effets moyens des chocs de change
 
 
-foreach i of numlist 1995 {  //2000 2005 2009 2010 2011
+foreach i of numlist 1995 /*2000 2005 2009 2010 2011*/{
 	clear
 	set more off
 	compute_leontief `i'
+	compute_X `i'
+	create_y `i'
+	compute_VA `i'
 }
 
-foreach i of numlist 2000 2005 2009 2010 2011  {  //1995
+foreach i of numlist 1995 /*2000 2005 2009 2010 2011*/{
 
-		foreach j in Yt  { //X
+		foreach j in Yt X {
 		table_mean `i' `j' 1 
 	}
 }
@@ -504,6 +526,8 @@ foreach i of numlist 2000 2005 2009 2010 2011  {  //1995
 
 clear matrix
 set more off
+
+/*
 
 // dévaluation de l'euro par rapport à toutes les monnaies
 compute_leontieff 2011
