@@ -3,6 +3,8 @@ clear
 global dir "H:\Agents\Cochard\Papier_chocCVA"
 
 if ("`c(username)'"=="guillaumedaudin") global dir "~/Dropbox/commerce en VA"
+if ("`c(username)'"=="L841580") global dir "H:\Agents\Cochard\Papier_chocCVA"
+
 
 capture log using "$dir/$S_DATE $S_TIME.log", replace
 set matsize 7000
@@ -72,7 +74,7 @@ set more off
 capture program drop compute_leontief_chocnom
 program compute_leontief_chocnom
 	args yrs groupeduchoc
-*ex : compute_leontief_chocnom 2005 arg	
+*ex : compute_leontief_chocnom 2005 ARG	
 *Create vector Y of output from troncated database
 clear
 
@@ -82,8 +84,8 @@ clear
 
 *Create matrix Z of inter-industry inter-country trade
 
-use "$dir/Bases/OECD_`yrs'_Z.dta", clear
-mkmat arg_c01t05agr-zaf_c95pvh, matrix (A)
+use "$dir/Bases/A_`yrs'.dta", clear
+
 
 merge 1:1 _n using "$dir/Bases/csv.dta"
 drop _merge
@@ -115,6 +117,7 @@ foreach var of varlist arg_c01t05agr-zaf_c95pvh {
 	foreach p of local groupeduchoc {
 	
 		replace grchoc2 = 1 if pays == "`p'" 
+		
 
 		if ("`p'"=="MEX") {
 			replace grchoc2 = 1 if pays == "MEXGMF" 
@@ -127,6 +130,7 @@ foreach var of varlist arg_c01t05agr-zaf_c95pvh {
 		}
 
 	}
+	
 replace `var'=0 if (grchoc==1 & grchoc2==1)
 replace grchoc2=0
 
@@ -134,27 +138,28 @@ replace grchoc2=0
 drop grchoc grchoc2 pays
 mkmat arg_c01t05agr-zaf_c95pvh, matrix (B)
 
-***----  On construit la matrice B2 avec des matrices 0 diagonales  pour les pays non choqués ------*
+***----  On construit la matrice B2 avec des colonnes 0  pour les pays non choqués ------*
 clear
 use "$dir/Bases/A_`yrs'.dta", clear
-mkmat arg_c01t05agr-zaf_c95pvh, matrix (A)
+
+
 
 merge 1:1 _n using "$dir/Bases/csv.dta"
 drop _merge
 
-gen grchoc = 0
+gen grchoc_ligne = 0
 
 foreach p of local groupeduchoc {
-	replace grchoc = 1 if c == "`p'" 
+	replace grchoc_ligne = 1 if c == "`p'" 
 
 	if ("`p'"=="MEX") {
-		replace grchoc = 1 if c == "MEXGMF" 
-		replace grchoc = 1 if c == "MEXNGM" 
+		replace grchoc_ligne = 1 if c == "MEXGMF" 
+		replace grchoc_ligne = 1 if c == "MEXNGM" 
 		}
 	if ("`p'"=="CHN") {
-		replace grchoc = 1 if c == "CHNDOM" 
-		replace grchoc = 1 if c == "CHNNPR" 
-		replace grchoc = 1 if c == "CHNPRO" 
+		replace grchoc_ligne = 1 if c == "CHNDOM" 
+		replace grchoc_ligne = 1 if c == "CHNNPR" 
+		replace grchoc_ligne = 1 if c == "CHNPRO" 
 		}
 }
  
@@ -179,12 +184,16 @@ foreach var of varlist arg_c01t05agr-zaf_c95pvh {
 		}
 
 	}
-replace `var'=0 if (grchoc==0 & grchoc2==0)
+
+	
+	replace `var'=0 if (grchoc_ligne==0 & grchoc2==0)
 replace grchoc2=0
 
+
 }
-drop grchoc grchoc2 pays
+drop grchoc_ligne grchoc2 pays
 mkmat arg_c01t05agr-zaf_c95pvh, matrix (B2)
+
 display "fin de compute_leontief_chocnom`groupeduchoc'" `yrs'
 
 end
@@ -394,7 +403,7 @@ program table_mean
 *yrs = years, wgt = Yt (output) or X (export) or VAt (value-added)
 clear
 *set matsize 7000
-set trace on
+* set trace on
 set more off
 
 *compute_leontieff `yrs'
@@ -427,7 +436,7 @@ save "$dir/Results/Devaluations/mean_chg_`wgt'_`yrs'.dta", replace
 
 export excel using "$dir/Results/Devaluations/mean_chg_`wgt'_`yrs'.xls", firstrow(variables) replace
 
-set trace off
+* set trace off
 set more on
 
 end
@@ -443,6 +452,7 @@ program shock_deval
 *yrs = years,shk = 1, wgt = Yt (output) or X (export) or VAt (value-added), zone = noneuro (for a shock corresponding to a devaluation of the euro), china or eastern
 
 set matsize 7000
+*set trace on
 set more off
 clear
 
@@ -471,8 +481,8 @@ save "$dir/Results/Devaluations/mean_`zone'_`wgt'_`yrs'.dta", replace
 
 export excel using "$dir/Results/Devaluations/mean_`zone'_`wgt'_`yrs'.xls", firstrow(variables)
 
-set trace off
-set more on
+*set trace off
+*set more on
 
 end
 
