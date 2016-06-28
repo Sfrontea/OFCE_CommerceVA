@@ -246,7 +246,7 @@ mkmat r1-r2159, matrix (L1)
 
 
 *Multiplying the transpose of vector shock `v'_shockt by L1 to get the impact of a shock on the output price vector
-matrix C`groupeduchoc' = p_shockt+p_shockt*B*(I+L1)+p_shock2t*B2*(I+L1)
+matrix C`groupeduchoc' = p_shockt+(p_shockt*B+p_shock2t*B2)*L1
 *Result example: using p_shock = 0.05 if c == "ARG" & s == "C01T05": if prices in agriculture increase by 5% in Argentina, output prices in the sector of agriculture in Argentina increase by 5.8%
 
 end
@@ -441,7 +441,7 @@ set more on
 
 end
 
-
+/*
 *-------------------------------------------------------------------------------
 *DEVALUATION OF THE EURO What happens when the euro is devaluated? To know that, we do a shock of 1 on all countries but the eurozone.
 *-------------------------------------------------------------------------------
@@ -456,7 +456,7 @@ set matsize 7000
 set more off
 clear
 
-*compute_leontieff `yrs'
+compute_leontieff `yrs'
 if ("`wgt'" == "Yt")  {
 	create_y `yrs' 
 	}
@@ -486,7 +486,7 @@ export excel using "$dir/Results/Devaluations/mean_`zone'_`wgt'_`yrs'.xls", firs
 
 end
 
-
+*/
 
 *--------------------------------------------------------------------------------
 *LIST ALL PROGRAMS AND RUN THEM
@@ -526,6 +526,8 @@ foreach i of numlist 1995 /*2000 2005 2009 2010 2011*/{
 
 clear matrix
 set more off
+
+/*
 
 // dévaluation de l'euro par rapport à toutes les monnaies
 compute_leontieff 2011
