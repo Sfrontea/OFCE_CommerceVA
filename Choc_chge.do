@@ -1,3 +1,7 @@
+*****Mettre global test =1 provoquera la sauvegarde de plein de matrices / vecteurs à vérifier
+
+
+
 clear
 
 global dir "H:\Agents\Cochard\Papier_chocCVA"
@@ -10,6 +14,8 @@ capture log using "$dir/$S_DATE $S_TIME.log", replace
 set matsize 7000
 *set mem 700m if earlier version of stata (<stata 12)
 set more off
+
+
 
 *-------------------------------------------------------------------------------
 *COMPUTING LEONTIEF INVERSE MATRIX  : matrix L1
@@ -34,6 +40,7 @@ mkmat arg_c01t05agr-zaf_c95pvh, matrix (Z)
 
 *From vector Y create a diagonal matrix Yd which contains all elements of vector Y on the diagonal
 matrix Yd=diag(Y)
+
 *Take the inverse of Yd (with invsym instead of inv for more accurateness and to avoid errors)
 matrix Yd1=invsym(Yd)
 
@@ -89,34 +96,40 @@ use "$dir/Bases/A_`yrs'.dta", clear
 
 merge 1:1 _n using "$dir/Bases/csv.dta"
 drop _merge
+rename c pays_choqué
 
-***----  On construit la matrice B avec des matrices 0 diagonales  pour les pays choqués ------*
+***----  On construit la matrice B avec des 0 partout sauf pour les CI étrangères en provenance du pays choqué ------*
 
 gen grchoc = 0
 
 foreach p of local groupeduchoc {
-	replace grchoc = 1 if c == "`p'" 
+	replace grchoc = 1 if pays_choqué == "`p'" 
 
 	if ("`p'"=="MEX") {
-		replace grchoc = 1 if c == "MEXGMF" 
-		replace grchoc = 1 if c == "MEXNGM" 
+		replace grchoc = 1 if pays_choqué == "MEXGMF" 
+		replace grchoc = 1 if pays_choqué == "MEXNGM" 
 		}
 	if ("`p'"=="CHN") {
-		replace grchoc = 1 if c == "CHNDOM" 
-		replace grchoc = 1 if c == "CHNNPR" 
-		replace grchoc = 1 if c == "CHNPRO" 
+		replace grchoc = 1 if pays_choqué == "CHNDOM" 
+		replace grchoc = 1 if pays_choqué == "CHNNPR" 
+		replace grchoc = 1 if pays_choqué == "CHNPRO" 
 		}
 }
  
 
-gen pays="0"
+
+gen pays_origine=""
 gen grchoc2=0
 
 foreach var of varlist arg_c01t05agr-zaf_c95pvh {
-	replace pays = strupper(substr("`var'",1,strpos("`var'","_")-1))
+	replace `var'=0 if grchoc==0
+	
+	
+	replace pays_origine = strupper(substr("`var'",1,strpos("`var'","_")-1))
+	
 	foreach p of local groupeduchoc {
 	
-		replace grchoc2 = 1 if pays == "`p'" 
+		replace grchoc2 = 1 if pays_origine == "`p'" 
 		
 
 		if ("`p'"=="MEX") {
@@ -131,14 +144,18 @@ foreach var of varlist arg_c01t05agr-zaf_c95pvh {
 
 	}
 	
-replace `var'=0 if (grchoc==1 & grchoc2==1)
+
+	replace `var'=0 if grchoc==1  & grchoc2==1
+
 replace grchoc2=0
 
-}
-drop grchoc grchoc2 pays
-mkmat arg_c01t05agr-zaf_c95pvh, matrix (B)
 
-***----  On construit la matrice B2 avec des colonnes 0  pour les pays non choqués ------*
+}
+drop grchoc grchoc2
+mkmat arg_c01t05agr-zaf_c95pvh, matrix (B)
+if $test==1 save "$dir/Bases/B_`yrs'_`groupeduchoc'.dta", replace
+
+***----  On construit la matrice B2 avec des 0 partout sauf pour les CI étrangères du pays choqué ------*
 clear
 use "$dir/Bases/A_`yrs'.dta", clear
 
@@ -169,6 +186,10 @@ gen grchoc2=0
 
 foreach var of varlist arg_c01t05agr-zaf_c95pvh {
 	replace pays = strupper(substr("`var'",1,strpos("`var'","_")-1))
+	
+	
+
+	
 	foreach p of local groupeduchoc {
 	
 		replace grchoc2 = 1 if pays == "`p'" 
@@ -186,7 +207,8 @@ foreach var of varlist arg_c01t05agr-zaf_c95pvh {
 	}
 
 	
-	replace `var'=0 if (grchoc_ligne==0 & grchoc2==0)
+		replace `var'=0 if grchoc2==0
+	replace `var'=0 if (grchoc_ligne==1 & grchoc2==1)
 replace grchoc2=0
 
 
@@ -195,6 +217,7 @@ drop grchoc_ligne grchoc2 pays
 mkmat arg_c01t05agr-zaf_c95pvh, matrix (B2)
 
 display "fin de compute_leontief_chocnom`groupeduchoc'" `yrs'
+if $test==1 save "$dir/Bases/B2_`yrs'_`groupeduchoc'.dta", replace
 
 end
    
@@ -204,6 +227,7 @@ end
 capture program drop vector_shock_exch
 program vector_shock_exch
 		args shk groupeduchoc 
+		***exepl : vector_shock_exch 1 ARG
 clear
 *set matsize 7000
 set more off
@@ -213,14 +237,16 @@ foreach p of local groupeduchoc {
 
 	replace p_shock = `shk' if c == "`groupeduchoc'"
 }
+
+
 *I extract vector p_shock from database with mkmat
 mkmat p_shock
 matrix p_shockt=p_shock'
 
-generate p_shock2=1/(1+`shk')
+generate p_shock2=-1/(1+`shk')
 foreach p of local groupeduchoc {
 
-	replace p_shock = 0 if c == "`groupeduchoc'"
+	replace p_shock2 = 0 if c == "`groupeduchoc'"
 }
 *I extract vector p_shock from database with mkmat
 mkmat p_shock2
@@ -233,12 +259,14 @@ mkmat p_shock
 matrix p_shockt=p_shock'
 *The transpose of p_shock will be necessary for further computations
 
+
 end
 
 
 capture program drop shock_exch
 program shock_exch
 	args yrs groupeduchoc 
+	****expl : shock_exch 2005 ARG
 	
 clear	
 use "$dir/Bases/L1_`yrs'.dta"
@@ -248,6 +276,14 @@ mkmat r1-r2159, matrix (L1)
 *Multiplying the transpose of vector shock `v'_shockt by L1 to get the impact of a shock on the output price vector
 matrix C`groupeduchoc' = p_shockt+(p_shockt*B+p_shock2t*B2)*L1
 *Result example: using p_shock = 0.05 if c == "ARG" & s == "C01T05": if prices in agriculture increase by 5% in Argentina, output prices in the sector of agriculture in Argentina increase by 5.8%
+
+
+matrix C`groupeduchoc't=C`groupeduchoc''
+svmat C`groupeduchoc't
+keep C`groupeduchoc't1
+
+
+if $test==1 save "$dir/Bases/C_`yrs'_`groupeduchoc'.dta", replace
 
 end
 
@@ -488,6 +524,9 @@ end
 
 */
 
+
+
+
 *--------------------------------------------------------------------------------
 *LIST ALL PROGRAMS AND RUN THEM
 *--------------------------------------------------------------------------------
@@ -507,7 +546,7 @@ local eastern "BGR CZE HRV HUN POL ROU "
 // Fabrication des fichiers d'effets moyens des chocs de change
 
 
-foreach i of numlist 1995 /*2000 2005 2009 2010 2011*/{
+foreach i of numlist 1995 2000 2005 2009 2010 2011{
 	clear
 	set more off
 	compute_leontief `i'
@@ -516,7 +555,7 @@ foreach i of numlist 1995 /*2000 2005 2009 2010 2011*/{
 	compute_VA `i'
 }
 
-foreach i of numlist 1995 /*2000 2005 2009 2010 2011*/{
+foreach i of numlist 1995 2000 2005 2009 2010 2011{
 
 		foreach j in Yt X {
 		table_mean `i' `j' 1 
@@ -538,4 +577,9 @@ shock_deval 2011 1 Yt noneuro
 
 
 set more on
+
+
+*/
+
+
 log close
