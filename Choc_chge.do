@@ -133,13 +133,13 @@ foreach var of varlist arg_c01t05agr-zaf_c95pvh {
 		
 
 		if ("`p'"=="MEX") {
-			replace grchoc2 = 1 if pays == "MEXGMF" 
-			replace grchoc2 = 1 if pays == "MEXNGM" 
+			replace grchoc2 = 1 if pays_origine == "MEXGMF" 
+			replace grchoc2 = 1 if pays_origine == "MEXNGM" 
 		}
 		if ("`p'"=="CHN") {
-			replace grchoc2 = 1 if pays == "CHNDOM" 
-			replace grchoc2 = 1 if pays == "CHNNPR" 
-			replace grchoc2 = 1 if pays == "CHNPRO" 
+			replace grchoc2 = 1 if pays_origine == "CHNDOM" 
+			replace grchoc2 = 1 if pays_origine == "CHNNPR" 
+			replace grchoc2 = 1 if pays_origine == "CHNPRO" 
 		}
 
 	}
@@ -181,7 +181,7 @@ foreach p of local groupeduchoc {
 }
  
 
-gen pays="0"
+gen pays=""
 gen grchoc2=0
 
 foreach var of varlist arg_c01t05agr-zaf_c95pvh {
@@ -546,7 +546,7 @@ local eastern "BGR CZE HRV HUN POL ROU "
 // Fabrication des fichiers d'effets moyens des chocs de change
 
 
-foreach i of numlist 1995 2000 2005 2009 2010 2011{
+foreach i of numlist 1995 2000 2005 /*2009 2010*/ 2011{
 	clear
 	set more off
 	compute_leontief `i'
@@ -555,7 +555,7 @@ foreach i of numlist 1995 2000 2005 2009 2010 2011{
 	compute_VA `i'
 }
 
-foreach i of numlist 1995 2000 2005 2009 2010 2011{
+foreach i of numlist 1995 2000 2005 /*2009 2010*/ 2011{
 
 		foreach j in Yt X {
 		table_mean `i' `j' 1 
