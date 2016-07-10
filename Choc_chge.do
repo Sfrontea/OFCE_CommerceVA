@@ -453,7 +453,7 @@ mkmat shock`cty'
 
 end
 
-/*
+
 *----------------------------------------------------------------------------------------------------
 *CREATION OF THE TABLE CONTAINING THE MEAN EFFECT OF A EXCHANGE RATE SHOCK FROM EACH COUNTRY TO ALL COUNTRIES
 *----------------------------------------------------------------------------------------------------
