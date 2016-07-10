@@ -100,19 +100,19 @@ rename c pays_choqué
 
 ***----  On construit la matrice B avec des 0 partout sauf pour les CI étrangères en provenance du pays choqué ------*
 
-gen grchoc = 0
+gen grchoc_ligne = 0
 
 foreach p of local groupeduchoc {
-	replace grchoc = 1 if pays_choqué == "`p'" 
+	replace grchoc_ligne = 1 if pays_choqué == "`p'" 
 
 	if ("`p'"=="MEX") {
-		replace grchoc = 1 if pays_choqué == "MEXGMF" 
-		replace grchoc = 1 if pays_choqué == "MEXNGM" 
+		replace grchoc_ligne = 1 if pays_choqué == "MEXGMF" 
+		replace grchoc_ligne = 1 if pays_choqué == "MEXNGM" 
 		}
 	if ("`p'"=="CHN") {
-		replace grchoc = 1 if pays_choqué == "CHNDOM" 
-		replace grchoc = 1 if pays_choqué == "CHNNPR" 
-		replace grchoc = 1 if pays_choqué == "CHNPRO" 
+		replace grchoc_ligne = 1 if pays_choqué == "CHNDOM" 
+		replace grchoc_ligne = 1 if pays_choqué == "CHNNPR" 
+		replace grchoc_ligne = 1 if pays_choqué == "CHNPRO" 
 		}
 }
  
@@ -122,7 +122,7 @@ gen pays_origine=""
 gen grchoc2=0
 
 foreach var of varlist arg_c01t05agr-zaf_c95pvh {
-	replace `var'=0 if grchoc==0
+	replace `var'=0 if grchoc_ligne==0
 	
 	
 	replace pays_origine = strupper(substr("`var'",1,strpos("`var'","_")-1))
@@ -145,13 +145,13 @@ foreach var of varlist arg_c01t05agr-zaf_c95pvh {
 	}
 	
 
-	replace `var'=0 if grchoc==1  & grchoc2==1
+	replace `var'=0 if grchoc_ligne==1  & grchoc2==1
 
 replace grchoc2=0
 
 
 }
-drop grchoc grchoc2
+*drop grchoc grchoc2
 mkmat arg_c01t05agr-zaf_c95pvh, matrix (B)
 if $test==1 save "$dir/Bases/B_`yrs'_`groupeduchoc'.dta", replace
 
@@ -181,27 +181,27 @@ foreach p of local groupeduchoc {
 }
  
 
-gen pays=""
+gen pays_origine=""
 gen grchoc2=0
 
 foreach var of varlist arg_c01t05agr-zaf_c95pvh {
-	replace pays = strupper(substr("`var'",1,strpos("`var'","_")-1))
+	replace pays_origine = strupper(substr("`var'",1,strpos("`var'","_")-1))
 	
 	
 
 	
 	foreach p of local groupeduchoc {
 	
-		replace grchoc2 = 1 if pays == "`p'" 
+		replace grchoc2 = 1 if pays_origine == "`p'" 
 
 		if ("`p'"=="MEX") {
-			replace grchoc2 = 1 if pays == "MEXGMF" 
-			replace grchoc2 = 1 if pays == "MEXNGM" 
+			replace grchoc2 = 1 if pays_origine == "MEXGMF" 
+			replace grchoc2 = 1 if pays_origine == "MEXNGM" 
 		}
 		if ("`p'"=="CHN") {
-			replace grchoc2 = 1 if pays == "CHNDOM" 
-			replace grchoc2 = 1 if pays == "CHNNPR" 
-			replace grchoc2 = 1 if pays == "CHNPRO" 
+			replace grchoc2 = 1 if pays_origine == "CHNDOM" 
+			replace grchoc2 = 1 if pays_origine == "CHNNPR" 
+			replace grchoc2 = 1 if pays_origine == "CHNPRO" 
 		}
 
 	}
@@ -213,7 +213,7 @@ replace grchoc2=0
 
 
 }
-drop grchoc_ligne grchoc2 pays
+*drop grchoc_ligne grchoc2 pays
 mkmat arg_c01t05agr-zaf_c95pvh, matrix (B2)
 
 display "fin de compute_leontief_chocnom`groupeduchoc'" `yrs'
@@ -235,7 +235,19 @@ clear
 use "$dir/Bases/csv.dta", clear
 foreach p of local groupeduchoc {
 
-	replace p_shock = `shk' if c == "`groupeduchoc'"
+	replace p_shock = `shk' if c == "`p'"
+	
+	
+	if ("`p'"=="MEX") {
+			replace p_shock = `shk' if c == "MEXGMF" 
+			replace p_shock = `shk' if c == "MEXNGM" 
+		}
+	if ("`p'"=="CHN") {
+			replace p_shock = `shk' if c == "CHNDOM" 
+			replace p_shock = `shk' if c == "CHNNPR" 
+			replace p_shock = `shk' if c == "CHNPRO" 
+		}	
+	
 }
 
 
@@ -246,7 +258,18 @@ matrix p_shockt=p_shock'
 generate p_shock2=-1/(1+`shk')
 foreach p of local groupeduchoc {
 
-	replace p_shock2 = 0 if c == "`groupeduchoc'"
+	replace p_shock2 = 0 if c == "`p'"
+	
+	if ("`p'"=="MEX") {
+			replace p_shock2 = 0 if c == "MEXGMF" 
+			replace p_shock2 = 0 if c == "MEXNGM" 
+		}
+	if ("`p'"=="CHN") {
+			replace p_shock2 = 0 if c == "CHNDOM" 
+			replace p_shock2 = 0 if c == "CHNNPR" 
+			replace p_shock2 = 0 if c == "CHNPRO" 
+		}	
+	
 }
 *I extract vector p_shock from database with mkmat
 mkmat p_shock2
@@ -430,6 +453,7 @@ mkmat shock`cty'
 
 end
 
+/*
 *----------------------------------------------------------------------------------------------------
 *CREATION OF THE TABLE CONTAINING THE MEAN EFFECT OF A EXCHANGE RATE SHOCK FROM EACH COUNTRY TO ALL COUNTRIES
 *----------------------------------------------------------------------------------------------------
