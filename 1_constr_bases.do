@@ -1,9 +1,18 @@
 clear
-capture log using "H:\Agents\Cochard\Papier_chocCVA/$S_DATE $S_TIME.log", replace
+
+
+
+if ("`c(username)'"=="guillaumedaudin") global dir "~/Dropbox/commerce en VA"
+if ("`c(username)'"=="L841580") global dir "H:/Agents/Cochard/Papier_chocCVA"
+
+
+
+
+capture log using "$dir/$S_DATE $S_TIME.log", replace
 set matsize 7000
 *set mem 700m if earlier version of stata (<stata 12)
 set more off
-global dir "H:\Agents\Cochard\Papier_chocCVA"
+
 
 *-------------------------------------------------------------------------------
 * SAVE DATABASE FOR EACH YEAR
@@ -15,12 +24,12 @@ clear
 *Loop to save data for each year
 set more off
 foreach i of numlist 1995 2000 2005 2008 2009 2010 2011 {
-insheet using "H:\Agents\Cochard\Papier_chocCVA\Bases\ICIO/OECD_ICIO_June2015_`i'.csv", clear
+insheet using "$dir/Bases/ICIO/OECD_ICIO_June2015_`i'.csv", clear
 *I sort the ICIO: 
 sort v1 aus_c01t05agr-disc in 1/2159
 order aus_c01t05agr-row_c95pvh, alphabetic after (v1)
 order aus_hc-row_consabr, alphabetic after (zaf_c95pvh)
-save "H:\Agents\Cochard\Papier_chocCVA\Bases/OECD`i'.dta", replace
+save "$dir/Bases/OECD`i'.dta", replace
 }
 
 *Same with the database for wages
@@ -30,10 +39,10 @@ local tab "WAGE OUT"
 foreach n of local tab{
 	foreach i of numlist 1995 2000 2005 {
 	clear
-	import excel "H:\Agents\Cochard\Papier_chocCVA\Bases\ICIO/WAGE_`i'.xlsx", sheet("`n'") firstrow
+	import excel "$dir/Bases/ICIO/WAGE_`i'.xlsx", sheet("`n'") firstrow
 	keep A-VNM
 	drop if A == ""
-	save "H:\Agents\Cochard\Papier_chocCVA\Bases/`n'_`i'.dta", replace
+	save "$dir/Bases/`n'_`i'.dta", replace
 	}
 }
 
@@ -47,26 +56,26 @@ program prepare_database
 	args yrs 
 
 *From the ICIO database I keep only the output vector
-use "H:\Agents\Cochard\Papier_chocCVA\Bases/OECD`yrs'.dta"
+use "$dir/Bases/OECD`yrs'.dta"
 keep if v1 == "OUT"
 drop v1
 drop arg_consabr-disc
-save "H:\Agents\Cochard\Papier_chocCVA\Bases/OECD_`yrs'_OUT.dta", replace
+save "$dir/Bases/OECD_`yrs'_OUT.dta", replace
 
 *From the ICIO database I keep only the table for inter-industry inter-country trade
 clear
-use "H:\Agents\Cochard\Papier_chocCVA\Bases/OECD`yrs'.dta"
+use "$dir/Bases/OECD`yrs'.dta"
 drop arg_consabr-disc
 drop if v1 == "VA.TAXSUB" | v1 == "OUT"
 drop v1
-save "H:\Agents\Cochard\Papier_chocCVA\Bases/OECD_`yrs'_Z.dta", replace
+save "$dir/Bases/OECD_`yrs'_Z.dta", replace
 
 *From the ICIO database I keep only the table for final demand
 clear
-use "H:\Agents\Cochard\Papier_chocCVA\Bases/OECD`yrs'.dta"
+use "$dir/Bases/OECD`yrs'.dta"
 drop if v1 == "VA.TAXSUB" | v1 == "OUT"
 keep arg_consabr-disc
-save "H:\Agents\Cochard\Papier_chocCVA\Bases/finaldemand_`yrs'.dta", replace
+save "$dir/Bases/finaldemand_`yrs'.dta", replace
 
 end
 
@@ -80,7 +89,7 @@ program base_wage
 	args yrs n
 *yrs = years, n = onglet WAGE or OUT
 	clear
-	use "H:\Agents\Cochard\Papier_chocCVA\Bases/`n'_`yrs'.dta"
+	use "$dir/Bases/`n'_`yrs'.dta"
 
 *List of countries for which there is no data available for wages
 	global restcountry "ISL BRN COL CRI HKG HRV KHM MEX_GMF MEX_NGM MYS PHL ROW SAU SGP THA TUN "
@@ -144,7 +153,7 @@ program base_wage
 		} 
 	} 
 	
-save "H:\Agents\Cochard\Papier_chocCVA\Bases/`n'_`yrs'.dta", replace
+save "$dir/Bases/`n'_`yrs'.dta", replace
 	
 end
 
@@ -222,7 +231,7 @@ foreach i of global sector5 {
 
 rename v1 p_shock
 
-save "H:\Agents\Cochard\Papier_chocCVA\Bases/csv.dta", replace
+save "$dir/Bases/csv.dta", replace
 
 end
 
@@ -239,7 +248,7 @@ args yrs
 
 /*Y vecteur de production*/ 
 clear
-use "H:\Agents\Cochard\Papier_chocCVA\Bases/OECD_`yrs'_OUT.dta"
+use "$dir/Bases/OECD_`yrs'_OUT.dta"
 *drop arg_consabr-disc
 rename * prod*
 generate year = `yrs'
@@ -255,9 +264,9 @@ program append_y
 foreach i of numlist 1995 2000 2005 2008 2009 2010 2011{ 
 	compute_y `i'
 	if `i'!=1995 {
-		append using "H:\Agents\Cochard\Papier_chocCVA\Bases/prod.dta"
+		append using "$dir/Bases/prod.dta"
 				}
-	save "H:\Agents\Cochard\Papier_chocCVA\Bases/prod.dta", replace
+	save "$dir/Bases/prod.dta", replace
 	}
 sort year , stable
 end
@@ -271,7 +280,7 @@ capture program drop compute_X
 program compute_X
 	args yrs
 
-use "H:\Agents\Cochard\Papier_chocCVA\Bases/OECD`yrs'.dta", clear
+use "$dir/Bases/OECD`yrs'.dta", clear
 
 global country2 "arg aus aut bel bgr bra brn can che chl chn chn.npr chn.pro chn.dom col cri cyp cze deu dnk esp est fin fra gbr grc hkg hrv hun idn ind irl isl isr ita jpn khm kor ltu lux lva mex mex.ngm mex.gmf mlt mys nld nor nzl phl pol prt rou row rus sau sgp svk svn swe tha tun tur twn usa vnm zaf"
 
@@ -311,9 +320,9 @@ program append_X
 foreach i of numlist 1995 2000 2005 2008 2009 2010 2011{ 
 	compute_X `i'
 	if `i'!=1995 {
-	append using "H:\Agents\Cochard\Papier_chocCVA\Bases/exports.dta" 
+	append using "$dir/Bases/exports.dta" 
 	}
-	save "H:\Agents\Cochard\Papier_chocCVA\Bases/exports.dta", replace
+	save "$dir/Bases/exports.dta", replace
 }	
 
 replace pays = "CHNNPR" if pays == "CHN.NPR"
@@ -323,7 +332,7 @@ replace pays = "MEXNGM" if pays == "MEX.NGM"
 replace pays = "MEXGMF" if pays == "MEX.GMF"
  
 sort year , stable
-save "H:\Agents\Cochard\Papier_chocCVA\Bases/exports.dta", replace
+save "$dir/Bases/exports.dta", replace
  
 
 end
