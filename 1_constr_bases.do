@@ -233,6 +233,11 @@ rename v1 p_shock
 
 save "$dir/Bases/csv.dta", replace
 
+collapse (sum) p_shock, by(c)
+
+save "$dir/Bases/pays_en_ligne.dta", replace
+
+
 end
 
 

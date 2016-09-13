@@ -14,7 +14,24 @@ capture log using "$dir/$S_DATE $S_TIME.log", replace
 set matsize 7000
 *set mem 700m if earlier version of stata (<stata 12)
 set more off
+global test 0
+*Mettre test=1 pour sauver les tableaux un par un et test=0 pour ne pas encombrer le DD.
 
+
+*global country "ARG AUS AUT BEL BGR BRA BRN CAN CHE CHL CHN CHNDOM CHNNPR CHNPRO COL CRI CYP CZE DEU DNK ESP EST FIN FRA GBR GRC HKG HRV HUN IDN IND IRL ISL ISR ITA JPN KHM KOR LTU LUX LVA MEX MEXGMF MEXNGM MLT MYS NLD NOR NZL PHL POL PRT ROU ROW RUS SAU SGP SVK SVN SWE THA TUN TUR TWN USA VNM ZAF"
+global country "ARG AUS AUT BEL BGR BRA BRN CAN CHE CHL CHN COL CRI CYP CZE DEU DNK ESP EST FIN FRA GBR GRC HKG HRV HUN IDN IND IRL ISL ISR ITA JPN KHM KOR LTU LUX LVA MEX MLT MYS NLD NOR NZL PHL POL PRT ROU ROW RUS SAU SGP SVK SVN SWE THA TUN TUR TWN USA VNM ZAF"
+
+
+local eurozone "AUT BEL CYP DEU ESP EST FIN FRA GRC IRL ITA LTU LUX LVA MLT NLD PRT SVK SVN"
+local noneuro "ARG AUS BGR BRA BRN CAN CHE CHL CHN COL CRI CZE DNK GBR HKG HRV HUN IDN IND ISL ISR JPN KHM KOR MEX MYS NOR NZL PHL POL ROU ROW RUS SAU SGP SWE THA TUN TUR TWN USA VNM ZAF"
+local china "CHN CHNDOM CHNNPR CHNPRO"
+local eastern "BGR CZE HRV HUN POL ROU "
+
+
+global eurozone "AUT BEL CYP DEU ESP EST FIN FRA GRC IRL ITA LTU LUX LVA MLT NLD PRT SVK SVN"
+global noneuro "ARG AUS BGR BRA BRN CAN CHE CHL CHN COL CRI CZE DNK GBR HKG HRV HUN IDN IND ISL ISR JPN KHM KOR MEX MYS NOR NZL PHL POL ROU ROW RUS SAU SGP SWE THA TUN TUR TWN USA VNM ZAF"
+global china "CHN CHNDOM CHNNPR CHNPRO"
+global eastern "BGR CZE HRV HUN POL ROU "
 
 
 *-------------------------------------------------------------------------------
@@ -107,13 +124,24 @@ foreach p of local groupeduchoc {
 
 	if ("`p'"=="MEX") {
 		replace grchoc_ligne = 1 if pays_choqué == "MEXGMF" 
-		replace grchoc_ligne = 1 if pays_choqué == "MEXNGM" 
-		}
+		replace grchoc_ligne = 1 if pays_choqué == "MEXNGM"
+ 		replace grchoc_ligne = 1 if strpos("MEXGMF MEXNGM", pays_choqué)!=0
+	}
 	if ("`p'"=="CHN") {
 		replace grchoc_ligne = 1 if pays_choqué == "CHNDOM" 
 		replace grchoc_ligne = 1 if pays_choqué == "CHNNPR" 
 		replace grchoc_ligne = 1 if pays_choqué == "CHNPRO" 
-		}
+		replace grchoc_ligne = 1 if strpos("$china", pays_choqué)!=0
+	}
+	if ("`p'"=="EUR") {
+		replace grchoc_ligne = 1 if strpos("$eurozone", pays_choqué)!=0
+	}
+	if ("`p'"=="EAS") {
+		replace grchoc_ligne = 1 if strpos("$eastern", pays_choqué)!=0
+	}
+		
+		
+		
 }
  
 
@@ -141,11 +169,21 @@ foreach var of varlist arg_c01t05agr-zaf_c95pvh {
 			replace grchoc2 = 1 if pays_origine == "CHNNPR" 
 			replace grchoc2 = 1 if pays_origine == "CHNPRO" 
 		}
+		if ("`p'"=="EUR") {
+			replace grchoc2 = 1 if strpos("$eurozone", pays_origine)!=0
+		}
+		if ("`p'"=="EAS") {
+		replace grchoc2 = 1 if strpos("$eastern", pays_origine)!=0
+	}
+		
+		
 
 	}
 	
 
-	replace `var'=0 if grchoc_ligne==1  & grchoc2==1
+	replace `var'=0 if grchoc_ligne==1  & grchoc2==1 
+*	if strmatch("`var'","*aut*")==1 blif
+	
 
 replace grchoc2=0
 
@@ -153,6 +191,7 @@ replace grchoc2=0
 }
 *drop grchoc grchoc2
 mkmat arg_c01t05agr-zaf_c95pvh, matrix (B)
+order pays_choqué s
 if $test==1 save "$dir/Bases/B_`yrs'_`groupeduchoc'.dta", replace
 
 ***----  On construit la matrice B2 avec des 0 partout sauf pour les CI étrangères du pays choqué ------*
@@ -178,6 +217,14 @@ foreach p of local groupeduchoc {
 		replace grchoc_ligne = 1 if c == "CHNNPR" 
 		replace grchoc_ligne = 1 if c == "CHNPRO" 
 		}
+	if ("`p'"=="EUR") {
+		replace grchoc_ligne = 1 if strpos("$eurozone", c)!=0
+	}
+	if ("`p'"=="EAS") {
+		replace grchoc_ligne = 1 if strpos("$eastern", c)!=0
+	}
+		
+		
 }
  
 
@@ -203,6 +250,13 @@ foreach var of varlist arg_c01t05agr-zaf_c95pvh {
 			replace grchoc2 = 1 if pays_origine == "CHNNPR" 
 			replace grchoc2 = 1 if pays_origine == "CHNPRO" 
 		}
+		if ("`p'"=="EUR") {
+		replace grchoc2 = 1 if strpos("$eurozone", pays_origine)!=0
+		}
+		if ("`p'"=="EAS") {
+		replace grchoc2 = 1 if strpos("$eastern", pays_origine)!=0
+		}
+		
 
 	}
 
@@ -217,6 +271,8 @@ replace grchoc2=0
 mkmat arg_c01t05agr-zaf_c95pvh, matrix (B2)
 
 display "fin de compute_leontief_chocnom`groupeduchoc'" `yrs'
+order c s 
+
 if $test==1 save "$dir/Bases/B2_`yrs'_`groupeduchoc'.dta", replace
 
 end
@@ -247,6 +303,16 @@ foreach p of local groupeduchoc {
 			replace p_shock = `shk' if c == "CHNNPR" 
 			replace p_shock = `shk' if c == "CHNPRO" 
 		}	
+		
+	if ("`p'"=="EUR") {
+		replace p_shock = `shk' if strpos("$eurozone", c)!=0
+	}
+	if ("`p'"=="EAS") {
+		replace p_shock = `shk' if strpos("$eastern", c)!=0
+	}
+		
+	
+
 	
 }
 
@@ -263,12 +329,19 @@ foreach p of local groupeduchoc {
 	if ("`p'"=="MEX") {
 			replace p_shock2 = 0 if c == "MEXGMF" 
 			replace p_shock2 = 0 if c == "MEXNGM" 
-		}
+	}
 	if ("`p'"=="CHN") {
 			replace p_shock2 = 0 if c == "CHNDOM" 
 			replace p_shock2 = 0 if c == "CHNNPR" 
 			replace p_shock2 = 0 if c == "CHNPRO" 
-		}	
+	}	
+	if ("`p'"=="EUR") {
+		replace p_shock2 = 0 if strpos("$eurozone", c)!=0
+	}
+	if ("`p'"=="EAS") {
+		replace p_shock2 = 0 if strpos("$eastern", c)!=0
+	}
+	
 	
 }
 *I extract vector p_shock from database with mkmat
@@ -476,19 +549,23 @@ if ("`wgt'" == "X")  {
 //compute_VA `yrs'
 
 	
-global noneuro "ARG AUS BGR BRA BRN CAN CHE CHL CHN COL CRI CZE DNK GBR HKG HRV HUN IDN IND ISL ISR JPN KHM KOR MEX MYS NOR NZL PHL POL ROU ROW RUS SAU SGP SWE THA TUN TUR TWN USA VNM ZAF"
-foreach i of global noneuro {
+global ori_choc "EUR EAS ARG AUS AUT BEL BGR BRA BRN CAN CHE CHL CHN COL CRI CYP CZE DEU DNK ESP EST FIN FRA GBR GRC HKG HRV HUN IDN IND IRL ISL ISR ITA JPN KHM KOR LTU LUX LVA MEX MLT MYS NLD NOR NZL PHL POL PRT ROU ROW RUS SAU SGP SVK SVN SWE THA TUN TUR TWN USA VNM ZAF"
+
+foreach i of global ori_choc {
 	compute_leontief_chocnom `yrs' `i'
 	vector_shock_exch `shk' `i'   //
 	shock_exch `yrs' `i' 
 	compute_mean `i' `wgt'
 }
 
-clear
+
+use "$dir/Bases/pays_en_ligne.dta", clear
 set more off
-foreach i of global noneuro {
-svmat shock`i'
+foreach i of global ori_choc {
+	svmat shock`i'
 }
+
+
 
 * shockARG1 represents the mean effect of a price shock coming from Argentina for each country
 save "$dir/Results/Devaluations/mean_chg_`wgt'_`yrs'.dta", replace
@@ -555,22 +632,19 @@ end
 *LIST ALL PROGRAMS AND RUN THEM
 *--------------------------------------------------------------------------------
 
+
+
+
 clear
 set more off
 
-*global country "ARG AUS AUT BEL BGR BRA BRN CAN CHE CHL CHN CHNDOM CHNNPR CHNPRO COL CRI CYP CZE DEU DNK ESP EST FIN FRA GBR GRC HKG HRV HUN IDN IND IRL ISL ISR ITA JPN KHM KOR LTU LUX LVA MEX MEXGMF MEXNGM MLT MYS NLD NOR NZL PHL POL PRT ROU ROW RUS SAU SGP SVK SVN SWE THA TUN TUR TWN USA VNM ZAF"
-global country "ARG AUS AUT BEL BGR BRA BRN CAN CHE CHL CHN COL CRI CYP CZE DEU DNK ESP EST FIN FRA GBR GRC HKG HRV HUN IDN IND IRL ISL ISR ITA JPN KHM KOR LTU LUX LVA MEX MLT MYS NLD NOR NZL PHL POL PRT ROU ROW RUS SAU SGP SVK SVN SWE THA TUN TUR TWN USA VNM ZAF"
 
 
-local eurozone "AUT BEL CYP DEU ESP EST FIN FRA GRC IRL ITA LTU LUX LVA MLT NLD PRT SVK SVN"
-local noneuro "ARG AUS BGR BRA BRN CAN CHE CHL CHN COL CRI CZE DNK GBR HKG HRV HUN IDN IND ISL ISR JPN KHM KOR MEX MYS NOR NZL PHL POL ROU ROW RUS SAU SGP SWE THA TUN TUR TWN USA VNM ZAF"
-local china "CHN CHNDOM CHNNPR CHNPRO"
-local eastern "BGR CZE HRV HUN POL ROU "
 
 // Fabrication des fichiers d'effets moyens des chocs de change
 
 
-foreach i of numlist 1995 2000 2005 /*2009 2010*/ 2011{
+foreach i of numlist 1995 2000 2005 2009 2010 2011 {
 	clear
 	set more off
 	compute_leontief `i'
@@ -579,7 +653,7 @@ foreach i of numlist 1995 2000 2005 /*2009 2010*/ 2011{
 	compute_VA `i'
 }
 
-foreach i of numlist 1995 2000 2005 /*2009 2010*/ 2011{
+foreach i of numlist 1995 2000 2005 2009 2010 2011 {
 
 		foreach j in Yt X {
 		table_mean `i' `j' 1 
