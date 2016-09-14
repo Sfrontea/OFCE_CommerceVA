@@ -289,6 +289,9 @@ clear
 set more off
 clear
 use "$dir/Bases/csv.dta", clear
+
+* On construit le vecteur c, avec le choc c pour le pays choqué, 0 sinon
+
 foreach p of local groupeduchoc {
 
 	replace p_shock = `shk' if c == "`p'"
@@ -321,7 +324,11 @@ foreach p of local groupeduchoc {
 mkmat p_shock
 matrix p_shockt=p_shock'
 
-generate p_shock2=-1/(1+`shk')
+
+* On construit le vecteur c tilde, avec le choc -c pour les pays non choqués, 0 sinon
+
+
+generate p_shock2=-`shk'
 foreach p of local groupeduchoc {
 
 	replace p_shock2 = 0 if c == "`p'"
@@ -462,10 +469,15 @@ clear
 set more off
 clear
 use "$dir/Bases/csv.dta"
-matrix Yt = Y'
-svmat Yt
-svmat X
-svmat VAt
+
+if ("`wgt'" == "Yt")  {
+	matrix Yt = Y'
+	svmat Yt 
+	}
+if ("`wgt'" == "X")  {
+	svmat X
+	}
+//svmat VAt
 
 *I decide whether I use the production or export or value-added vector as weight modifying the argument "wgt" : Yt or X or VAt
 *Compute the vector of mean effects :
@@ -578,11 +590,11 @@ set more on
 
 end
 
-/*
+
 *-------------------------------------------------------------------------------
 *DEVALUATION OF THE EURO What happens when the euro is devaluated? To know that, we do a shock of 1 on all countries but the eurozone.
 *-------------------------------------------------------------------------------
-*
+
 capture program drop shock_deval
 program shock_deval
 	args yrs shk wgt zone
@@ -593,21 +605,18 @@ set matsize 7000
 set more off
 clear
 
-compute_leontieff `yrs'
+//compute_leontieff `yrs'
 if ("`wgt'" == "Yt")  {
 	create_y `yrs' 
 	}
 if ("`wgt'" == "X")  {
 	compute_X `yrs'
 	}
-//compute_VA `yrs'
 
-
-*global noneuro "ARG AUS BGR BRA BRN CAN CHE CHL CHN CHNDOM CHNNPR CHNPRO COL CRI CZE DNK GBR HKG HRV HUN IDN IND ISL ISR JPN KHM KOR MEX MEXGMF MEXNGM MYS NOR NZL PHL POL ROU ROW RUS SAU SGP SWE THA TUN TUR TWN USA VNM ZAF"
-	compute_leontieff_chocnom `yrs' `zone'
-	vector_shock_exch `shk' `zone'   //
-	shock_exch `yrs' `zone' 
-	compute_mean `zone' `wgt'
+compute_leontief_chocnom `yrs' `zone'
+vector_shock_exch `shk' `zone'
+shock_exch `yrs' `zone'
+compute_mean `zone' `wgt'
 
 clear
 svmat shock`zone'
@@ -660,15 +669,13 @@ foreach i of numlist 1995 2000 2005 2009 2010 2011 {
 	}
 }
 
-
-clear matrix
-set more off
-
+shock_deval 2011 1 Yt noneuro   
+*/
 /*
 
 // dévaluation de l'euro par rapport à toutes les monnaies
 compute_leontieff 2011
-shock_deval 2011 1 Yt noneuro    
+ 
 *create_y 2011
 *compute_X 2011
 *compute_mean_deval 2011 noneuro
