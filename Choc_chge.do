@@ -653,7 +653,7 @@ set more off
 // Fabrication des fichiers d'effets moyens des chocs de change
 
 
-foreach i of numlist 1995 /*2000 2005 2009 2010*/ 2011 {
+foreach i of numlist 1995  2005 2009 2010 2011 {
 	clear
 	set more off
 	compute_leontief `i'
@@ -662,7 +662,7 @@ foreach i of numlist 1995 /*2000 2005 2009 2010*/ 2011 {
 	compute_VA `i'
 }
 
-foreach i of numlist 1995 /*2000 2005 2009 2010*/ 2011 {
+foreach i of numlist 1995 2000 2005 2009 2010 2011 {
 
 		foreach j in Yt X {
 		table_mean `i' `j' 1 

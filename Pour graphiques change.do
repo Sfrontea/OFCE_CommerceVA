@@ -47,11 +47,12 @@ drop _merge
 
 replace pond_Y = (pond_Y - 1)/2 
 
-label var pond_Y "Production prices"
+label var pond_Y "Prix de production"
 
-label var pond_X "Export prices"
+label var pond_X "Prix d'export"
 
 save "$dir/Results/Devaluations/Pour_Graph_1.dta", replace
+export delimited "$dir/Results/Devaluations/Pour_Graph_1.csv", replace
 
 
 
@@ -84,11 +85,14 @@ rename pond_X pond_X_2011
 
 drop pond_Y
 
+
+label var pond_X_1995 "Prix d'export, 1995"
+
+label var pond_X_2011 "Prix d'export, 2011"
+
 save "$dir/Results/Devaluations/Pour_Graph_2.dta", replace
+export delimited "$dir/Results/Devaluations/Pour_Graph_2.csv", replace
 
-label var pond_X_1995 "Export prices, 1995"
-
-label var pond_X_2011 "Export prices, 2011"
 
 graph bar (asis) pond_X_1995 pond_X_2011 , over(c, sort(pond_X_2011) label(angle(vertical) labsize(tiny))) 
 
@@ -132,6 +136,140 @@ foreach pond in X Yt {
 
 	}
 }
+
+
+
+**Graphique 3
+
+
+use "$dir/Results/Devaluations/mean_chg_X_2011.dta", clear
+
+keep c shockEUR1
+drop if strpos("$eurozone",c)==0
+rename shockEUR1 pond_X
+replace pond_X = (pond_X - 1)/2
+
+save "$dir/Results/Devaluations/Pour_Graph_3.dta", replace
+
+use "$dir/Results/Devaluations/mean_chg_Yt_2011.dta", clear
+
+keep c shockEUR1
+drop if strpos("$eurozone",c)==0
+rename shockEUR1 pond_Yt
+replace pond_Yt = (pond_Yt - 1)/2
+
+
+
+merge 1:1 c using "$dir/Results/Devaluations/Pour_Graph_3.dta"
+
+label var pond_Yt "Prix de production"
+
+label var pond_X "Prix d'export"
+
+save "$dir/Results/Devaluations/Pour_Graph_3.dta", replace
+export delimited "$dir/Results/Devaluations/Pour_Graph_3.csv", replace
+
+graph bar (asis) pond_X pond_Yt , over(c, sort(pond_X) label(angle(vertical) )) 
+
+
+graph export "$dir/Results/Devaluations/Graph_3.png", replace
+
+**Graphique 4
+
+
+use "$dir/Results/Devaluations/mean_chg_X_2011.dta", clear
+
+keep c shockEUR1
+drop if strpos("$eurozone",c)!=0
+rename shockEUR1 pond_X
+
+
+save "$dir/Results/Devaluations/Pour_Graph_4.dta", replace
+
+use "$dir/Results/Devaluations/mean_chg_Yt_2011.dta", clear
+
+keep c shockEUR1
+drop if strpos("$eurozone",c)!=0
+rename shockEUR1 pond_Yt
+
+
+
+
+merge 1:1 c using "$dir/Results/Devaluations/Pour_Graph_4.dta"
+
+label var pond_Yt "Prix de production"
+
+label var pond_X "Prix d'export"
+
+save "$dir/Results/Devaluations/Pour_Graph_4.dta", replace
+export delimited "$dir/Results/Devaluations/Pour_Graph_4.csv", replace
+
+graph bar (asis) pond_X pond_Yt , over(c, sort(pond_X) descending label(angle(vertical) labsize(vsmall))) 
+
+
+graph export "$dir/Results/Devaluations/Graph_4.png", replace
+
+
+
+
+*GRAPHIQUE 5
+
+use "$dir/Results/Choc de prod/mean_p_X_2011.dta", clear
+
+merge 1:1 _n using "$dir/Bases/pays_en_ligne.dta
+drop _merge
+
+foreach var of varlist shockARG1-shockZAF1 {
+	local pays = substr("`var'",6,3)
+	replace `var' = 0 if strmatch(c,"*`pays'*")==0
+}
+
+egen pond_X = rowtotal(shockARG1-shockZAF1)
+replace pond_X = (pond_X - 1)
+
+
+keep c pond_X
+
+save "$dir/Results/Choc de prod/Pour_Graph_5.dta", replace
+
+
+use "$dir/Results/Choc de prod/mean_p_Yt_2011.dta", clear
+merge 1:1 _n using "$dir/Bases/pays_en_ligne.dta
+drop _merge
+
+
+foreach var of varlist shockARG1-shockZAF1 {
+	local pays = substr("`var'",6,3)
+	replace `var' = 0 if strmatch(c,"*`pays'*")==0
+}
+
+egen pond_Y = rowtotal(shockARG1-shockZAF1)
+
+keep c pond_Y
+
+merge 1:1 c using "$dir/Results/Choc de prod/Pour_Graph_5.dta"
+
+drop _merge 
+
+replace pond_Y = (pond_Y - 1)
+
+label var pond_Y "Prix de production"
+
+label var pond_X "Prix d'export"
+
+save "$dir/Results/Choc de prod/Pour_Graph_5.dta", replace
+export delimited "$dir/Results/Choc de prod/Pour_Graph_5.csv", replace
+
+
+
+
+
+
+graph bar (asis) pond_X pond_Y , over(c, sort(pond_X) descending label(angle(vertical) labsize(tiny))) 
+
+
+graph export "$dir/Results/Choc de prod/Graph_5.png", replace
+
 
 
 
