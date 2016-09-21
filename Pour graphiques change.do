@@ -4,6 +4,8 @@ if ("`c(username)'"=="guillaumedaudin") global dir "~/Dropbox/commerce en VA"
 if ("`c(username)'"=="L841580") global dir "H:\Agents\Cochard\Papier_chocCVA"
 
 
+global eurozone "AUT BEL CYP DEU ESP EST FIN FRA GRC IRL ITA LTU LUX LVA MLT NLD PRT SVK SVN"
+global eastern "BGR CZE HRV HUN POL ROU"
 
 
 
@@ -101,41 +103,6 @@ graph export "$dir/Results/Devaluations/Graph_2.png", replace
 
 
 
-**Tableau 1
-
-global eurozone "AUT BEL CYP DEU ESP EST FIN FRA GRC IRL ITA LTU LUX LVA MLT NLD PRT SVK SVN"
-global eastern "BGR CZE HRV HUN POL ROU"
-
-local i =1 
-
-foreach pond in X Yt {
-
-	foreach orig in USA EUR CHN JPN GBR RUS  EAS {
-		use "$dir/Results/Devaluations/mean_chg_`pond'_2011.dta", clear
-		format shock* %3.2f
-		keep c shock`orig'1
-		gsort - shock`orig'1
-	
-		drop if strmatch(c,"*`orig'*")==1
-		if "`orig'"=="EUR" drop if strpos("$eurozone",c)!=0
-		if "`orig'"=="EAS" drop if strpos("$eastern",c)!=0
-
-	
-	
-		keep if _n<=10
-	
-		if "`orig'"=="USA" local column A
-		if "`orig'"=="EUR" local column C
-		if "`orig'"=="CHN" local column E
-		if "`orig'"=="JPN" local column G
-		if "`orig'"=="GBR" local column I
-		if "`orig'"=="RUS" local column K
-		if "`orig'"=="EAS" local column M
-	
-		export excel "$dir/Results/Devaluations/Tableau_1_`pond'.xls", firstrow(variables) cell(`column'1) sheetmodify
-
-	}
-}
 
 
 
@@ -269,6 +236,191 @@ graph bar (asis) pond_X pond_Y , over(c, sort(pond_X) descending label(angle(ver
 
 
 graph export "$dir/Results/Choc de prod/Graph_5.png", replace
+
+
+
+***************************************
+*Pour tableaux
+**********************
+
+
+
+
+**Tableau 1
+
+
+local i =1 
+
+foreach pond in X Yt {
+
+	foreach orig in USA EUR CHN JPN GBR RUS  EAS {
+		use "$dir/Results/Devaluations/mean_chg_`pond'_2011.dta", clear
+		format shock* %3.2f
+		keep c shock`orig'1
+		gsort - shock`orig'1
+	
+		drop if strmatch(c,"*`orig'*")==1
+		if "`orig'"=="EUR" drop if strpos("$eurozone",c)!=0
+		if "`orig'"=="EAS" drop if strpos("$eastern",c)!=0
+
+	
+	
+		keep if _n<=10
+	
+		if "`orig'"=="USA" local column A
+		if "`orig'"=="EUR" local column C
+		if "`orig'"=="CHN" local column E
+		if "`orig'"=="JPN" local column G
+		if "`orig'"=="GBR" local column I
+		if "`orig'"=="RUS" local column K
+		if "`orig'"=="EAS" local column M
+	
+		export excel "$dir/Results/Devaluations/Tableau_1_`pond'.xls", firstrow(variables) cell(`column'1) sheetmodify
+
+	}
+}
+
+***Tableau 2
+
+
+foreach year in 1995 2000 2005 2009 2010 2011 {
+	use "$dir/Results/Devaluations/mean_chg_X_`year'.dta", clear
+	keep if strpos("$eurozone",c)!=0
+	
+	if `year'==1995 local column A
+	if `year'==2000 local column C
+	if `year'==2005 local column D
+	if `year'==2009 local column E
+	if `year'==2010 local column F
+	if `year'==2011 local column G
+		
+	keep c shockEUR1
+	if `year'!=1995 drop c 
+	rename shockEUR1 shockEUR_`year'
+	replace shockEUR_`year' = (shockEUR_`year' - 1)/2
+	
+	
+	export excel "$dir/Results/Devaluations/Tableau_2.xls", firstrow(variables) cell(`column'1) sheetmodify
+}
+	
+	
+
+	
+
+***Tableau 3
+
+
+local orig USA CHN JPN GBR EAS RUS SAU
+
+use "$dir/Results/Devaluations/mean_chg_Yt_2011.dta", clear
+drop if strpos("$eurozone",c)==0
+	
+keep c shockUSA1 shockCHN1 shockJPN1 shockGBR1 shockEAS1 shockRUS1 shockSAU1   
+
+export excel "$dir/Results/Devaluations/Tableau_3.xls", firstrow(variables) sheetmodify
+
+		
+	
+	
+***Tableau 4
+
+
+local orig USA CHN JPN GBR EAS RUS SAU
+
+use "$dir/Results/Devaluations/mean_chg_X_2011.dta", clear
+drop if strpos("$eurozone",c)==0
+	
+keep c shockUSA1 shockCHN1 shockJPN1 shockGBR1 shockEAS1 shockRUS1 shockSAU1   
+
+export excel "$dir/Results/Devaluations/Tableau_4.xls", firstrow(variables) sheetmodify
+
+	
+
+***Tableau 5
+
+
+foreach year in 1995 2000 2005 2009 2010 2011 {
+	use "$dir/Results/Devaluations/mean_chg_X_`year'.dta", clear
+	keep if strpos("$eurozone",c)!=0
+	
+	if `year'==1995 local column A
+	if `year'==2000 local column C
+	if `year'==2005 local column D
+	if `year'==2009 local column E
+	if `year'==2010 local column F
+	if `year'==2011 local column G
+		
+	keep c shockEAS1
+	if `year'!=1995 drop c 
+	rename shockEAS1 shockEAS_`year'
+	
+	
+	export excel "$dir/Results/Devaluations/Tableau_5.xls", firstrow(variables) cell(`column'1) sheetmodify
+}
+
+
+
+***Tableau 6
+	
+use "$dir/Results/Choc de prod/mean_p_X_2011.dta", clear
+
+
+foreach euro of global eurozone {
+		local tokeep `tokeep' + shock`euro'
+}
+
+merge 1:1 _n using "$dir/Bases/pays_en_ligne.dta
+drop _merge
+order c
+keep if strpos("$eurozone",c)!=0
+
+preserve
+
+
+local tokeep c 
+foreach euro of global eurozone {
+		rename shock`euro'1 `euro'
+		local tokeep `tokeep' `euro'
+		replace `euro'=0 if c=="`euro'"
+}
+
+keep `tokeep'
+
+gen Europe_Est = SVK + SVN + EST + LTU + LVA
+drop SVK SVN EST LTU LVA
+gen Europe_Sud = CYP + GRC + MLT + PRT
+drop CYP  GRC  MLT  PRT
+gen AUT_IRL_FIN = AUT + IRL + FIN
+drop AUT IRL FIN
+
+
+egen EUR =rowtotal(BEL-AUT_IRL_FIN)
+
+foreach euro in BEL DEU ESP FRA ITA LUX NLD {
+		replace `euro'=. if c=="`euro'"
+}
+
+export excel "$dir/Results/Devaluations/Tableau_6.xls", firstrow(variables) replace
+
+restore
+
+foreach east of global eastern {
+		rename shock`east'1 `east'
+}
+
+egen EAS = rowtotal($eastern)
+
+local tokeep c EAS
+foreach pays in USA CHN JPN GBR RUS SAU {
+		rename shock`pays'1 `pays'
+		local tokeep `tokeep' `pays'
+}
+
+keep `tokeep'
+
+export excel "$dir/Results/Devaluations/Tableau_6bis.xls", firstrow(variables) replace
+
+
 
 
 
