@@ -400,25 +400,40 @@ foreach euro in BEL DEU ESP FRA ITA LUX NLD {
 		replace `euro'=. if c=="`euro'"
 }
 
-export excel "$dir/Results/Devaluations/Tableau_6.xls", firstrow(variables) replace
+export excel "$dir/Results/Devaluations/Tableau_7.xls", firstrow(variables) replace
 
-restore
+
+
+***Tableau 7
+
+use "$dir/Results/Choc de prod/mean_p_X_2011.dta", clear
+
+
+foreach euro of global eurozone {
+		local tokeep `tokeep' + shock`euro'
+}
+
+merge 1:1 _n using "$dir/Bases/pays_en_ligne.dta
+drop _merge
+order c
+keep if strpos("$eurozone",c)!=0
 
 foreach east of global eastern {
 		rename shock`east'1 `east'
 }
 
-egen EAS = rowtotal($eastern)
+egen PECO= rowtotal($eastern)
 
-local tokeep c EAS
+local tokeep c PECO
 foreach pays in USA CHN JPN GBR RUS SAU {
 		rename shock`pays'1 `pays'
 		local tokeep `tokeep' `pays'
 }
 
 keep `tokeep'
+order c PECO
 
-export excel "$dir/Results/Devaluations/Tableau_6bis.xls", firstrow(variables) replace
+export excel "$dir/Results/Devaluations/Tableau_7.xls", firstrow(variables) replace
 
 
 
