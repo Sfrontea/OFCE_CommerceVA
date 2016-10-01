@@ -400,7 +400,7 @@ foreach euro in BEL DEU ESP FRA ITA LUX NLD {
 		replace `euro'=. if c=="`euro'"
 }
 
-export excel "$dir/Results/Devaluations/Tableau_7.xls", firstrow(variables) replace
+export excel "$dir/Results/Choc de prod/Tableau_6.xls", firstrow(variables) replace
 
 
 
@@ -433,7 +433,7 @@ foreach pays in USA CHN JPN GBR RUS SAU {
 keep `tokeep'
 order c PECO
 
-export excel "$dir/Results/Devaluations/Tableau_7.xls", firstrow(variables) replace
+export excel "$dir/Results/Choc de prod/Tableau_7.xls", firstrow(variables) replace
 
 
 
