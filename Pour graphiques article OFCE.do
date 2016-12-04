@@ -271,17 +271,27 @@ label var pond_Y "Prix de production"
 
 label var pond_X "Prix d'exportation"
 
-save "$dir/Results/Choc de prod/Pour_Graph_5.dta", replace
-export delimited "$dir/Results/Choc de prod/Pour_Graph_5.csv", replace
-export excel "$dir/Results/Choc de prod/Pour_Graph_5.xslx", firstrow(variable)replace
-
+save "$dir/Results/Choc de prod/Pour_Graph_5_old.dta", replace
+export delimited "$dir/Results/Choc de prod/Pour_Graph_5_old.csv", replace
+export excel "$dir/Results/Choc de prod/Pour_Graph_5_old.xslx", firstrow(variable)replace
+graph export "$dir/Results/Choc de prod/Graph_5_old.png", replace
 
 
 
 graph bar (asis) pond_X pond_Y , over(c_full_FR, sort(pond_X) descending label(angle(vertical) labsize(tiny))) 
 
 
+drop if strpos("$eurozone",c)==0
+
+graph bar (asis) pond_X pond_Y , over(c_full_FR, sort(pond_X) descending label(angle(vertical) labsize(small))) 
+
+save "$dir/Results/Choc de prod/Pour_Graph_5.dta", replace
+export delimited "$dir/Results/Choc de prod/Pour_Graph_5.csv", replace
+export excel "$dir/Results/Choc de prod/Pour_Graph_5.xslx", firstrow(variable)replace
 graph export "$dir/Results/Choc de prod/Graph_5.png", replace
+
+
+
 
 
 
@@ -455,33 +465,32 @@ order c
 
 keep if strpos("$eurozone",c)!=0
 
-preserve
-
 
 local tokeep c 
 foreach euro of global eurozone {
 		rename shock`euro'1 `euro'
 		local tokeep `tokeep' `euro'
-		replace `euro'=0 if c=="`euro'"
+		replace `euro'=`euro'-1 if c=="`euro'"
 }
 
 keep `tokeep'
 
+*egen Zone_euro =rowtotal(AUT-SVN)
+
+*foreach euro in BEL DEU ESP FRA ITA LUX NLD {
+*		replace `euro'=. if c=="`euro'"
+*}
 
 
-gen Europe_Est = SVK + SVN + EST + LTU + LVA
+*gen Europe_Est = (SVK + SVN + EST + LTU + LVA)
 drop SVK SVN EST LTU LVA
-gen Europe_Sud = CYP + GRC + MLT + PRT
+*gen Europe_Sud = (CYP + GRC + MLT + PRT)
 drop CYP  GRC  MLT  PRT
-gen AUT_IRL_FIN = AUT + IRL + FIN
+*gen AUT_IRL_FIN = (AUT + IRL + FIN)
 drop AUT IRL FIN
 
 
-egen Zone_euro =rowtotal(BEL-AUT_IRL_FIN)
 
-foreach euro in BEL DEU ESP FRA ITA LUX NLD {
-		replace `euro'=. if c=="`euro'"
-}
 
 
 rename BEL Belgique
@@ -489,13 +498,15 @@ rename DEU Allemagne
 rename ESP Espagne
 rename FRA France
 rename ITA Italie
-rename LUX Luxembourg
+*rename LUX Luxembourg
 rename NLD Pays_Bas
+
+drop LUX
 
 merge 1:1 c using "$dir/Bases/Pays_FR.dta",keep(3)
 drop _merge 
 drop c
-order c_full_FR
+order c_full_FR Allemagne Belgique *
 
 export excel "$dir/Results/Choc de prod/Tableau_6.xlsx", firstrow(variables) replace
 
