@@ -561,6 +561,127 @@ export excel "$dir/Results/Choc de prod/Tableau_7.xlsx", firstrow(variables) rep
 
 
 
+------------------ Pour graphiques de la fin
+
+clear
+
+if ("`c(username)'"=="guillaumedaudin") global dir "~/Dropbox/commerce en VA"
+
+if ("`c(username)'"=="L841580") global dir "H:/Agents/Cochard/Papier_chocCVA"
+
+cd "$dir"
+
+
+set matsize 7000
+
+set more off
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+global eurozone "AUT BEL CYP DEU ESP EST FIN FRA GRC IRL ITA LTU LUX LVA MLT NLD PRT SVK SVN"
+
+
+use "$dir/Bases/imp_inputs_2011.dta" , clear //,keep(3)
+
+gen c=upper(pays)
+drop pays
+
+merge 1:1 c using "$dir/Results/Devaluations/Pour_Graph_1.dta"
+
+drop _merge pond_X
+
+//replace pond_Y = (pond_Y - 1)/2 
+
+label var pond_Y "Prix de production"
+
+label var input_prod "Parts des inputs importés dans la production"
+
+drop if strpos("$eurozone",c)==0
+
+save "$dir/Results/Devaluations/Pour_Graph_imp_deval.dta", replace
+//export delimited "$dir/Results/Devaluations/Pour_Graph_1_old.csv", replace
+/*
+graph twoway (scatter pond_Y input_prod, mlabel(c_full_FR)) (qfit pond_Y input_prod)  , ///
+xtitle("Parts des inputs importés dans la production") ytitle("Elasticité des prix de production en euro")
+yscale(range(0 -.2) reverse) xscale(range(0 .4))
+
+graph export "$dir/Results/Devaluations/Graph_1_imp.png", replace
+
+*/
+drop if c_full_FR=="Luxembourg"
+graph twoway (scatter pond_Y input_prod, mlabel(c_full_FR)) (qfit pond_Y input_prod)  , ///
+			xtitle("Parts des inputs importés dans la production") ytitle("Elasticité des prix de production en euro") ///
+			yscale(range(0 -.2) reverse) xscale(range(0 .3)) xlabel (0(0.05) .3) ylabel(0 (0.05) -.2)
+			
+			
+graph export "$dir/Results/Devaluations/Graph_1_imp.png", replace 
+export excel "$dir/Results/Devaluations/Pour_Graph_1_imp.xlsx", firstrow(variable)replace
+ /*
+graph twoway (scatter pond_Y input_prod, mlabel(c_full_FR)) (qfit pond_Y input_prod)  ,    xtitle("Parts des inputs importés dans la production") ytitle("Prix de production")
+graph export "$dir/Results/Devaluations/Graph_1_imp.png", replace   */
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+global eurozone "AUT BEL CYP DEU ESP EST FIN FRA GRC IRL ITA LTU LUX LVA MLT NLD PRT SVK SVN"
+
+/*use "$dir/Results/Devaluations/mean_chg_Yt_2011.dta", clear
+
+foreach var of varlist shockEUR1-shockZAF1 {
+	local pays = substr("`var'",6,3)
+	replace `var' = 0 if strmatch(c,"*`pays'*")==0
+}
+
+egen pond_Y = rowtotal(shockEUR1-shockZAF1)
+
+keep c pond_Y
+
+gen pays=lower(c)
+drop c*/
+
+use "$dir/Bases/imp_inputs_hze_2011.dta", clear  //,keep(3)
+//drop _merge
+
+gen c=upper(pays)
+drop pays
+
+merge 1:1 c using "$dir/Results/Devaluations/Pour_Graph_3.dta"
+
+drop _merge pond_X
+
+//replace pond_Y = (pond_Y - 1)/2 
+
+label var pond_Y "Prix de production"
+
+label var input_prod "Parts des inputs importés en provenance de pays hors zone euro dans la production"
+
+drop if strpos("$eurozone",c)==0
+
+save "$dir/Results/Devaluations/Pour_Graph_imp_deval.dta", replace
+//export delimited "$dir/Results/Devaluations/Pour_Graph_1_old.csv", replace
+
+graph twoway (scatter pond_Y input_prod, mlabel(c_full_FR)) (qfit pond_Y input_prod)  , ///
+			xtitle("Parts des inputs importés en provenance de pays hors zone euro dans la production") ytitle("Elasticité des prix de production en euro") ///
+			yscale(range(0 -.2) reverse) xscale(range(0 .2))
+graph export "$dir/Results/Devaluations/Graph_2_imp.png", replace
+export excel "$dir/Results/Devaluations/Pour_Graph_2_imp.xlsx", firstrow(variable)replace
+
+
+/*
+drop if c_full_FR=="Luxembourg"
+graph twoway (scatter pond_Y input_prod, mlabel(c_full_FR)) (qfit pond_Y input_prod)  , ///
+			xtitle("Parts des inputs importés en provenance de pays hors zone euro dans la production") ytitle("Elasticité des prix de production en euro") ///
+			yscale(range(0 -.2) reverse) xscale(range(0 .3)) xlabel (0(0.05) .3) ylabel(0 (0.05) -.2)
+graph export "$dir/Results/Devaluations/Graph_2_imp-.png", replace
+graph twoway (scatter pond_Y input_prod, mlabel(c_full_FR)) (qfit pond_Y input_prod)  ,    xtitle("Parts des inputs importés en provenance de pays hors zone euro dans la production") ytitle("Prix de production")
+graph export "$dir/Results/Devaluations/Graph_2_imp-.png", replace*/
+
+
+
+
+
+
 
 
 
