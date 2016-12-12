@@ -64,10 +64,7 @@ save "$dir/Bases/imp_inputs_`yrs'.dta", replace
 
 end
 
-imp_inputs 2011
-imp_inputs_hze 2011
-
-
+*************************
 
 capture program drop imp_inputs_hze // fournit le total des inputs importés de pays hors ze par chaque pays
 
@@ -127,7 +124,7 @@ save "$dir/Bases/imp_inputs_hze_`yrs'.dta", replace
 
 end
 
-
+********************
 
 capture program drop loc_inputs // fournit le total des inputs importés par chaque pays
 program loc_inputs
@@ -169,6 +166,8 @@ drop prod
 save "$dir/Bases/loc_inputs_`yrs'.dta", replace
 
 end
+
+************
 /////////////////////////////////////////////////////////
 capture program drop imp_inputsX // fournit le total des inputs importés par chaque pays
 program imp_inputsX

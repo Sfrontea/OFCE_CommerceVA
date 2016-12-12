@@ -331,7 +331,7 @@ foreach pond in X Yt {
 		if "`orig'"=="RUS" local column K
 		if "`orig'"=="EAS" local column M
 	
-		export excel "$dir/Results/Devaluations/Tableau_1_`pond'.xlsx", firstrow(variables) cell(`column'1) sheetmodify
+		export excel "$dir/Results/Devaluations/Tableau_1_old_`pond'.xlsx", firstrow(variables) cell(`column'1) sheetmodify
 
 	}
 }
@@ -360,7 +360,7 @@ foreach year in 1995 2000 2005 2009 2010 2011 {
 	replace _`year' = (_`year' - 1)/2
 	
 	
-	export excel "$dir/Results/Devaluations/Tableau_2.xlsx", firstrow(variables) cell(`column'1) sheetmodify
+	export excel "$dir/Results/Devaluations/Tableau_1.xlsx", firstrow(variables) cell(`column'1) sheetmodify
 }
 	
 	
@@ -391,7 +391,7 @@ rename shockSAU1 Arabie_Saoudite
 
 
 
-export excel "$dir/Results/Devaluations/Tableau_3.xlsx", firstrow(variables) sheetmodify
+export excel "$dir/Results/Devaluations/Tableau_2.xlsx", firstrow(variables) sheetmodify
 
 		
 	
@@ -417,7 +417,7 @@ rename shockCHN1 Chine
 rename shockRUS1 Russie
 rename shockSAU1 Arabie_Saoudite
 
-export excel "$dir/Results/Devaluations/Tableau_4.xlsx", firstrow(variables) sheetmodify
+export excel "$dir/Results/Devaluations/Tableau_3.xlsx", firstrow(variables) sheetmodify
 
 	
 
@@ -445,7 +445,7 @@ foreach year in 1995 2000 2005 2009 2010 2011 {
 	
 	
 	
-	export excel "$dir/Results/Devaluations/Tableau_5.xlsx", firstrow(variables) cell(`column'1) sheetmodify
+	export excel "$dir/Results/Devaluations/Tableau_4.xlsx", firstrow(variables) cell(`column'1) sheetmodify
 }
 
 
@@ -508,7 +508,7 @@ drop _merge
 drop c
 order c_full_FR Allemagne Belgique *
 
-export excel "$dir/Results/Choc de prod/Tableau_6.xlsx", firstrow(variables) replace
+export excel "$dir/Results/Choc de prod/Tableau_5.xlsx", firstrow(variables) replace
 
 
 
@@ -556,12 +556,12 @@ order c_full_FR Pecos_hors_ZE
 
 order c_full_FR Royaume_Uni  États_Unis Japon Pecos_hors_ZE  Chine Russie Arabie_Saoudite 
 
-export excel "$dir/Results/Choc de prod/Tableau_7.xlsx", firstrow(variables) replace
+export excel "$dir/Results/Choc de prod/Tableau_6.xlsx", firstrow(variables) replace
 
 
 
 
------------------- Pour graphiques de la fin
+**------------------ Pour graphiques de la fin
 
 clear
 
@@ -664,7 +664,7 @@ use "$dir/Bases/loc_inputs_2011.dta", clear  //,keep(3)
 gen c=upper(pays)
 drop pays
 
-merge 1:1 c using "$dir/Results/Devaluations/Pour_Graph_5.dta"
+merge 1:1 c using "$dir/Results/Choc de prod/Pour_Graph_5.dta"
 
 drop _merge pond_X
 
@@ -690,8 +690,8 @@ graph twoway (scatter pond_Y loc_inputs, mlabel(c_full_FR)) (qfit pond_Y loc_inp
 			yscale(range(0 1)) xscale(range(0 .5)) xlabel (0(0.1) .5) ylabel(0 (0.1) 1)
 
 			
-			graph export "$dir/Results/Devaluations/Graph_8.png", replace
-export excel "$dir/Results/Devaluations/Pour_Graph_8.xlsx", firstrow(variable)replace
+			graph export "$dir/Results/Choc de prod/Graph_8.png", replace
+export excel "$dir/Results/Choc de prod/Pour_Graph_8.xlsx", firstrow(variable)replace
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -714,7 +714,7 @@ drop _merge pond_Y
 
 label var pond_X "Prix d'exportation"
 
-label var X_inputs "Parts des inputs importés dans les exportations"
+label var imp_inputs "Parts des inputs importés dans les exportations"
 
 drop if strpos("$eurozone",c)==0
 
