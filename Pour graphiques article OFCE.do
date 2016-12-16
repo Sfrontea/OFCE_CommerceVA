@@ -6,6 +6,7 @@ if ("`c(username)'"=="L841580") global dir "H:\Agents\Cochard\Papier_chocCVA"
 
 global eurozone "AUT BEL CYP DEU ESP EST FIN FRA GRC IRL ITA LTU LUX LVA MLT NLD PRT SVK SVN"
 global eastern "BGR CZE HRV HUN POL ROU"
+global eastern_ZE "EST LTU LVA SVK SVN"
 
 
 
@@ -215,6 +216,7 @@ label var pond_X "Prix d'exportation"
 
 save "$dir/Results/Devaluations/Pour_Graph_4.dta", replace
 export delimited "$dir/Results/Devaluations/Pour_Graph_4.csv", replace
+export excel "$dir/Results/Devaluations/Pour_Graph_4.xlsx", firstrow(variable)replace
 
 graph bar (asis) pond_X pond_Yt , over(c_full_FR, sort(pond_X) descending label(angle(vertical) labsize(vsmall))) 
 
@@ -489,11 +491,12 @@ drop CYP  GRC  MLT  PRT
 *gen AUT_IRL_FIN = (AUT + IRL + FIN)
 drop AUT IRL FIN
 
+drop BEL
 
 
 
 
-rename BEL Belgique
+*rename BEL Belgique
 rename DEU Allemagne
 rename ESP Espagne
 rename FRA France
@@ -506,7 +509,7 @@ drop LUX
 merge 1:1 c using "$dir/Bases/Pays_FR.dta",keep(3)
 drop _merge 
 drop c
-order c_full_FR Allemagne Belgique *
+order c_full_FR Allemagne  *
 
 export excel "$dir/Results/Choc de prod/Tableau_5.xlsx", firstrow(variables) replace
 
@@ -532,7 +535,16 @@ foreach east of global eastern {
 
 egen Pecos_hors_ZE= rowtotal($eastern)
 
-local tokeep c Pecos_hors_ZE
+
+
+foreach east of global eastern_ZE {
+		rename shock`east'1 `east'
+}
+
+egen Pecos_ZE= rowtotal($eastern_ZE)
+
+
+local tokeep c Pecos_hors_ZE Pecos_ZE
 foreach pays in USA CHN JPN GBR RUS SAU {
 		rename shock`pays'1 `pays'
 		local tokeep `tokeep' `pays'
@@ -552,9 +564,9 @@ rename SAU Arabie_Saoudite
 merge 1:1 c using "$dir/Bases/Pays_FR.dta",keep(3)
 drop _merge 
 drop c
-order c_full_FR Pecos_hors_ZE
+order c_full_FR Pecos_hors_ZE Pecos_ZE
 
-order c_full_FR Royaume_Uni  États_Unis Japon Pecos_hors_ZE  Chine Russie Arabie_Saoudite 
+order c_full_FR Pecos_hors_ZE  Pecos_ZE  Royaume_Uni  États_Unis Japon Chine 
 
 export excel "$dir/Results/Choc de prod/Tableau_6.xlsx", firstrow(variables) replace
 
@@ -599,10 +611,10 @@ label var input_prod "Parts des inputs importés dans la production"
 drop if strpos("$eurozone",c)==0
 
 save "$dir/Results/Devaluations/Pour_Graph_imp_deval.dta", replace
-drop if c_full_FR=="Luxembourg"
+*drop if c_full_FR=="Luxembourg"
 graph twoway (scatter pond_Y input_prod, mlabel(c_full_FR)) (qfit pond_Y input_prod)  , ///
-			xtitle("Parts des inputs importés dans la production") ytitle("Elasticité des prix de production en euro") ///
-			yscale(range(0 -.2) reverse) xscale(range(0 .3)) xlabel (0(0.05) .3) ylabel(0 (0.05) -.2)
+			xtitle("Parts des inputs importés dans la production") ytitle("Elasticité des prix de production en monnaie nationale", size(small)) ///
+			yscale(range(0 -.35) reverse) xscale(range(0 .45)) xlabel (0(0.05) .45) ylabel(0 (0.05) -.35)
 			
 			
 graph export "$dir/Results/Devaluations/Graph_1_imp.png", replace 
