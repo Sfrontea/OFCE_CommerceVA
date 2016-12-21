@@ -617,8 +617,8 @@ graph twoway (scatter pond_Y input_prod, mlabel(c_full_FR)) (qfit pond_Y input_p
 			yscale(range(0 -.35) reverse) xscale(range(0 .45)) xlabel (0(0.05) .45) ylabel(0 (0.05) -.35)
 			
 			
-graph export "$dir/Results/Devaluations/Graph_1_imp.png", replace 
-export excel "$dir/Results/Devaluations/Pour_Graph_1_imp.xlsx", firstrow(variable)replace
+graph export "$dir/Results/Devaluations/Graph_6.png", replace 
+export excel "$dir/Results/Devaluations/Pour_Graph_6.xlsx", firstrow(variable)replace
  /*
 graph twoway (scatter pond_Y input_prod, mlabel(c_full_FR)) (qfit pond_Y input_prod)  ,    xtitle("Parts des inputs importés dans la production") ytitle("Prix de production")
 graph export "$dir/Results/Devaluations/Graph_1_imp.png", replace   */
@@ -659,8 +659,8 @@ graph twoway (scatter pond_Y input_prod, mlabel(c_full_FR)) (qfit pond_Y input_p
 			yscale(range(0 -.2) reverse) xscale(range(0 .2)) xlabel (0(0.05) .2) ylabel(0 (0.05) -.2)
 
 			
-			graph export "$dir/Results/Devaluations/Graph_2_imp.png", replace
-export excel "$dir/Results/Devaluations/Pour_Graph_2_imp.xlsx", firstrow(variable)replace
+			graph export "$dir/Results/Devaluations/Graph_7.png", replace
+export excel "$dir/Results/Devaluations/Pour_Graph_7.xlsx", firstrow(variable)replace
 
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
